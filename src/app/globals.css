@@ -23,6 +23,9 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  /* data-viz (single-series) — validated reference palette */
+  --chart-series-1: #2a78d6;
+  --chart-good: #008300;
 }
 
 .dark {
@@ -45,6 +48,8 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --chart-series-1: #3987e5;
+  --chart-good: #008300;
 }
 
 @theme inline {

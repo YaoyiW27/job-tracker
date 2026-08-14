@@ -14,7 +14,15 @@ paths directly.
   approval, then go phase by phase with manual approval.
 - `.private/SPEC.md` is the source of truth. `scripts/find_jobs.py` is reference
   only for the location-tagging approach — follow SPEC.md where they differ.
-- My resume is in `.private/`. Use it for the fit scorer; never commit it.
+- My resumes are in `.private/`; never commit them. There are two, same
+  experience section, different project ordering and emphasis:
+  - `resume-infra.tex` — **A**: infra / platform / DevOps / SRE. Also the
+    default for general SDE roles.
+  - `resume-mlinfra.tex` — **B**: ML infra / ML systems / AI platform. Leads
+    with the LLM serving stack and CUDA work.
+  Score a JD against both and report **which version fits better and why**, not
+  just a single number. Never suggest adding a skill or keyword that isn't
+  backed by something in my repos — say "no evidence" instead.
 - **Scoped TDD.** Pure logic / lib functions (dedupe, scope + location tagging,
   prefill guards + metadata extraction, the fit scorer) are **test-first**: write
   the failing test, then implement. UI components + exploratory code (tables,

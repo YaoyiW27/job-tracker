@@ -32,10 +32,10 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - [x] **P2c** — "Save to tracker" (creates an Application; warn on duplicate)
 
 ### P3 — Dashboard
-- [ ] KPI cards (applied, in-progress, response rate, offers)
-- [ ] Status donut/funnel
-- [ ] Applications-over-time timeline
-- [ ] Top companies
+- [x] KPI cards (applied, in-progress, response rate, offers)
+- [x] Status distribution (horizontal bar — clearer than a 7-slice donut per dataviz)
+- [x] Applications-over-time (cumulative area)
+- [x] Top companies (bar)
 
 ### P4 — Fit scorer (optional/pluggable)
 - [ ] Claude-based scorer via `ANTHROPIC_API_KEY` (no key → skip)
@@ -65,3 +65,4 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - 2026-08-14 — P2a: jobs query layer (parse filters + where/orderBy) test-first + `/api/jobs`; verified vs 4627 ingested jobs (12 tests, 89 total) — `545b7b6`
 - 2026-08-14 — P2b: Discover page (ranked table + filters + pagination) + global nav — `5facf0e`
 - 2026-08-14 — P2c: Save-to-tracker from Discover; job→app mapping test-first; fixed 500 on force-saving an already-linked job (1:1 jobId) → clean 409 (93 tests). P2 complete — `b3a0708`
+- 2026-08-14 — P3: Dashboard — KPI cards + Recharts (by-status, cumulative over-time, top companies); metrics math test-first (8 tests, 101 total); dataviz single-series palette. P3 complete — `<pending>`

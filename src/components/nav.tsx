@@ -11,6 +11,9 @@ export function Nav() {
         <Link href="/discover" className="text-sm text-muted-foreground hover:text-foreground">
           Discover
         </Link>
+        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+          Dashboard
+        </Link>
       </nav>
     </header>
   );
