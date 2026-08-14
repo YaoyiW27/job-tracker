@@ -71,9 +71,11 @@ export function validateDraft(draft: ApplicationDraftInput): DraftValidation {
   return { ok: Object.keys(errors).length === 0, errors };
 }
 
+export type DuplicateReason = "match" | "already-saved";
+
 export type CreateOutcome =
   | { kind: "created"; application: unknown }
-  | { kind: "duplicate"; existing: DuplicateMatch }
+  | { kind: "duplicate"; existing: DuplicateMatch; reason?: DuplicateReason }
   | { kind: "invalid"; message: string }
   | { kind: "error"; message: string };
 
@@ -81,8 +83,8 @@ export type CreateOutcome =
 export function interpretCreateResponse(status: number, body: unknown): CreateOutcome {
   if (status === 201) return { kind: "created", application: body };
   if (status === 409) {
-    const existing = (body as { existing: DuplicateMatch }).existing;
-    return { kind: "duplicate", existing };
+    const { existing, reason } = body as { existing: DuplicateMatch; reason?: DuplicateReason };
+    return { kind: "duplicate", existing, reason };
   }
   if (status === 400) {
     const message = (body as { error?: string }).error ?? "Invalid input";

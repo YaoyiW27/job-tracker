@@ -29,7 +29,7 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 ### P2 — Discover (a feed into the Tracker)
 - [x] **P2a** — Jobs query layer (parse filters + Prisma where/orderBy) + `/api/jobs`
 - [x] **P2b** — Ranked Discover table + filters (bucket, company, min fitScore, active-only, category, roleKind) + top-tier bump
-- [ ] **P2c** — "Save to tracker" (creates an Application; warn on duplicate)
+- [x] **P2c** — "Save to tracker" (creates an Application; warn on duplicate)
 
 ### P3 — Dashboard
 - [ ] KPI cards (applied, in-progress, response rate, offers)
@@ -64,3 +64,4 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - 2026-08-14 — P1d: Kanban board (native drag-to-change-status) + table/board toggle; group/move logic test-first (5 tests, 77 total). P1 complete — `8a6b4fd`
 - 2026-08-14 — P2a: jobs query layer (parse filters + where/orderBy) test-first + `/api/jobs`; verified vs 4627 ingested jobs (12 tests, 89 total) — `545b7b6`
 - 2026-08-14 — P2b: Discover page (ranked table + filters + pagination) + global nav — `5facf0e`
+- 2026-08-14 — P2c: Save-to-tracker from Discover; job→app mapping test-first; fixed 500 on force-saving an already-linked job (1:1 jobId) → clean 409 (93 tests). P2 complete — `<pending>`

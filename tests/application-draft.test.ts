@@ -85,6 +85,14 @@ describe("interpretCreateResponse", () => {
       existing,
     });
   });
+  it("passes through the duplicate reason", () => {
+    const existing = { id: "y", company: "Acme", title: "Eng", url: null, status: "SAVED" };
+    expect(interpretCreateResponse(409, { duplicate: true, reason: "already-saved", existing })).toEqual({
+      kind: "duplicate",
+      existing,
+      reason: "already-saved",
+    });
+  });
   it("maps 400 to invalid with the message", () => {
     expect(interpretCreateResponse(400, { error: "company and title are required" })).toEqual({
       kind: "invalid",

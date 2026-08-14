@@ -64,6 +64,14 @@ export async function listApplications() {
   return db.application.findMany({ orderBy: { updatedAt: "desc" } });
 }
 
+/** Find the application already linked to a job (jobId is 1:1), if any. */
+export async function findApplicationByJobId(jobId: string): Promise<DuplicateMatch | null> {
+  return db.application.findUnique({
+    where: { jobId },
+    select: { id: true, company: true, title: true, url: true, status: true },
+  });
+}
+
 export interface CreateApplicationInput {
   company: string;
   title: string;
