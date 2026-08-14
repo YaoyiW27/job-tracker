@@ -33,4 +33,4 @@ Personal job-search app (Discover + Track). Source of truth for scope is
 
 ## Devlog
 
-- 2026-08-14 — P0a: scaffolded Next 15 + Prisma/SQLite, initial migration, git init — `<pending first commit>`
+- 2026-08-14 — P0a: scaffolded Next 15 + Prisma/SQLite, initial migration, git init — `5984686`
