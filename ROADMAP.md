@@ -58,4 +58,4 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - 2026-08-14 — reprioritized to Track-first; speedyapply source deferred to P0d; manual-add + URL-prefill elevated — `552baf0`
 - 2026-08-14 — P1a: applications API (CRUD + dedupe) + URL-prefill service; verified end-to-end via dev server — `3b318a3`
 - 2026-08-14 — Testing: Vitest + `tests/` + scoped-TDD rule (SPEC/CLAUDE); backfilled 47 tests for P0–P1a pure logic — `f1521f1`
-- 2026-08-14 — P1b: Tracker page + Add-row dialog (URL-prefill + dup-warning); draft/prefill/interpret logic test-first (15 tests, 62 total); hand-rolled shadcn-style UI primitives (no Radix) — `<pending>`
+- 2026-08-14 — P1b: Tracker page + Add-row dialog (URL-prefill + dup-warning); draft/prefill/interpret logic test-first (15 tests, 62 total); hand-rolled shadcn-style UI primitives (no Radix) — `1b3857a`
