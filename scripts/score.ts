@@ -6,6 +6,14 @@
 //   npm run score -- --all        # no cap
 //
 // No ANTHROPIC_API_KEY? It skips cleanly (fixture/no-key mode) — the app still runs.
+// Load .env so ANTHROPIC_API_KEY / ANTHROPIC_MODEL work when placed there
+// (tsx, unlike Next.js, does not auto-load .env). Shell env still wins.
+try {
+  process.loadEnvFile();
+} catch {
+  /* no .env file — fine; falls back to shell env / no-key mode */
+}
+
 import { db } from "../src/lib/db";
 import {
   isScoringEnabled,
