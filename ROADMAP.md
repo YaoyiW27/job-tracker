@@ -66,4 +66,4 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - 2026-08-14 — P2b: Discover page (ranked table + filters + pagination) + global nav — `5facf0e`
 - 2026-08-14 — P2c: Save-to-tracker from Discover; job→app mapping test-first; fixed 500 on force-saving an already-linked job (1:1 jobId) → clean 409 (93 tests). P2 complete — `b3a0708`
 - 2026-08-14 — P3: Dashboard — KPI cards + Recharts (by-status, cumulative over-time, top companies); metrics math test-first (8 tests, 101 total); dataviz single-series palette. P3 complete — `2f8b4af`
-- 2026-08-14 — P4: pluggable Claude fit scorer (opus-5, structured output, refusal-safe, no-key skip) + dual-resume A/B; LaTeX/prompt/normalize logic test-first (14 tests, 115 total). P4 complete — `<pending>`
+- 2026-08-14 — P4: pluggable Claude fit scorer (opus-5, structured output, refusal-safe, no-key skip) + dual-resume A/B; LaTeX/prompt/normalize logic test-first (14 tests, 115 total). P4 complete — `0b2a4dc`
