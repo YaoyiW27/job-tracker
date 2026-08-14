@@ -22,20 +22,20 @@ export interface DuplicateMatch {
   status: string;
 }
 
-/**
- * Find an existing application that looks like a duplicate: same url (if given),
- * else same company + title (case-insensitive). SQLite has no case-insensitive
- * Prisma filter, and the applications table is personal-scale, so we compare in
- * JS.
- */
-export async function findDuplicate(input: {
+export interface DuplicateInput {
   url?: string | null;
   company: string;
   title: string;
-}): Promise<DuplicateMatch | null> {
-  const rows = await db.application.findMany({
-    select: { id: true, company: true, title: true, url: true, status: true },
-  });
+}
+
+/**
+ * Pure duplicate matcher over a set of rows: same url (if given), else same
+ * company + title, all case-insensitive. Exported for unit testing without a DB.
+ */
+export function findDuplicateIn(
+  rows: DuplicateMatch[],
+  input: DuplicateInput,
+): DuplicateMatch | null {
   const url = input.url ? norm(input.url) : null;
   const company = norm(input.company);
   const title = norm(input.title);
@@ -46,6 +46,18 @@ export async function findDuplicate(input: {
         (norm(r.company) === company && norm(r.title) === title),
     ) ?? null
   );
+}
+
+/**
+ * Find an existing application that looks like a duplicate. SQLite has no
+ * case-insensitive Prisma filter, and the applications table is personal-scale,
+ * so we fetch and compare in JS via findDuplicateIn().
+ */
+export async function findDuplicate(input: DuplicateInput): Promise<DuplicateMatch | null> {
+  const rows = await db.application.findMany({
+    select: { id: true, company: true, title: true, url: true, status: true },
+  });
+  return findDuplicateIn(rows, input);
 }
 
 export async function listApplications() {

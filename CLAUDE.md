@@ -15,3 +15,12 @@ paths directly.
 - `.private/SPEC.md` is the source of truth. `scripts/find_jobs.py` is reference
   only for the location-tagging approach — follow SPEC.md where they differ.
 - My resume is in `.private/`. Use it for the fit scorer; never commit it.
+- **Scoped TDD.** Pure logic / lib functions (dedupe, scope + location tagging,
+  prefill guards + metadata extraction, the fit scorer) are **test-first**: write
+  the failing test, then implement. UI components + exploratory code (tables,
+  Kanban, dialogs) are **implement-first, then cover** with tests for the
+  important behavior — do NOT force test-first on UI.
+- **Tests are the verification.** Every phase's verification lands as repeatable
+  tests in `tests/` (Vitest, `npm test`), not one-off manual runs. Keep the
+  plan-first + ROADMAP tick + devlog cadence; that already IS our spec-driven
+  process — don't add a heavier framework on top.

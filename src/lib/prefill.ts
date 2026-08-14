@@ -18,7 +18,7 @@ const MAX_BYTES = 1_000_000;
 
 export class PrefillError extends Error {}
 
-function assertHttpUrl(raw: string): URL {
+export function assertHttpUrl(raw: string): URL {
   let u: URL;
   try {
     u = new URL(raw);
@@ -31,7 +31,7 @@ function assertHttpUrl(raw: string): URL {
   return u;
 }
 
-function isPrivateIp(ip: string): boolean {
+export function isPrivateIp(ip: string): boolean {
   if (ip === "127.0.0.1" || ip === "::1" || ip === "0.0.0.0") return true;
   const p = ip.split(".").map(Number);
   if (p.length === 4 && p.every((n) => Number.isFinite(n))) {
@@ -46,7 +46,7 @@ function isPrivateIp(ip: string): boolean {
 }
 
 /** Block localhost / private-network targets to avoid SSRF from a pasted URL. */
-async function assertPublicHost(u: URL): Promise<void> {
+export async function assertPublicHost(u: URL): Promise<void> {
   const host = u.hostname.toLowerCase();
   if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) {
     throw new PrefillError("Refusing to fetch a local/internal host");
@@ -169,11 +169,12 @@ async function fetchHtml(u: URL): Promise<string> {
   }
 }
 
-export async function prefillFromUrl(rawUrl: string): Promise<PrefillResult> {
-  const u = assertHttpUrl(rawUrl);
-  await assertPublicHost(u);
-  const html = await fetchHtml(u);
-
+/**
+ * Pure metadata extraction from an HTML string (no I/O). Preference order:
+ * JSON-LD JobPosting → OpenGraph → <title>. Exported so it can be unit-tested
+ * against fixture HTML without a network fetch.
+ */
+export function parseMetadata(html: string): Omit<PrefillResult, "error"> {
   const via: string[] = [];
   const ld = jsonLdJob(html);
 
@@ -208,4 +209,11 @@ export async function prefillFromUrl(rawUrl: string): Promise<PrefillResult> {
   }
 
   return { company, title, salary: ld?.salary ?? null, via };
+}
+
+export async function prefillFromUrl(rawUrl: string): Promise<PrefillResult> {
+  const u = assertHttpUrl(rawUrl);
+  await assertPublicHost(u);
+  const html = await fetchHtml(u);
+  return parseMetadata(html);
 }

@@ -8,6 +8,8 @@
     "start": "next start",
     "ingest": "tsx scripts/ingest.ts",
     "check:location": "tsx scripts/check_location.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate"
@@ -30,6 +32,7 @@
     "prisma": "^6.2.1",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
   }
 }

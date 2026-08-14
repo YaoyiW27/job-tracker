@@ -4,6 +4,14 @@ Personal job-search app — **Track is the core; Discover is one optional feed
 into it.** Source of truth for scope is `.private/SPEC.md`; this file tracks
 build progress.
 
+**Process:** plan-first → phase-by-phase with approval → tick box + devlog per
+sub-step. **Scoped TDD:** pure logic/lib is test-first; UI is implement-then-cover.
+All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`).
+
+## Testing
+- [x] Vitest + `tests/` + `npm test` set up
+- [x] Backfill: location tagging (+ parity vs `find_jobs.py`), scope + auth flags, dedupe case-insensitivity, prefill (SSRF refusals + JSON-LD/og/title extraction) — 47 tests
+
 ## Phases
 
 ### P0 — Foundation + ingest
@@ -37,6 +45,11 @@ build progress.
 - [ ] Gmail status scan (bump `Application.status`)
 - Explicitly out of scope: generic scraping of LinkedIn / Indeed
 
+### P6 — Interview-prep (FUTURE / optional — placeholder, do NOT build now)
+- [ ] Company research, STAR stories, likely Q&A
+- Note: if ever built, reimplement prompts with **Claude**. Do NOT use
+  `career-prep-agent`'s code — it has **no license**. Inspiration only.
+
 ## Devlog
 
 - 2026-08-14 — P0a: scaffolded Next 15 + Prisma/SQLite, initial migration, git init — `5984686`
@@ -44,3 +57,4 @@ build progress.
 - 2026-08-14 — P0c: pluggable ingest (source seam + normalizer + upsert); live run 4627 jobs, idempotent — `1c8481d`
 - 2026-08-14 — reprioritized to Track-first; speedyapply source deferred to P0d; manual-add + URL-prefill elevated — `552baf0`
 - 2026-08-14 — P1a: applications API (CRUD + dedupe) + URL-prefill service; verified end-to-end via dev server — `3b318a3`
+- 2026-08-14 — Testing: Vitest + `tests/` + scoped-TDD rule (SPEC/CLAUDE); backfilled 47 tests for P0–P1a pure logic — `<pending>`
