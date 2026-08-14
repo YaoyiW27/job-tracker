@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import type { Application } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,8 +34,7 @@ const emptyDraft = {
   notes: "",
 };
 
-export function AddRowDialog() {
-  const router = useRouter();
+export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => void }) {
   const [open, setOpen] = React.useState(false);
   const [draft, setDraft] = React.useState({ ...emptyDraft });
   const [errors, setErrors] = React.useState<{ company?: string; title?: string }>({});
@@ -117,8 +116,8 @@ export function AddRowDialog() {
   function applyOutcome(outcome: CreateOutcome) {
     switch (outcome.kind) {
       case "created":
+        onCreated(outcome.application as Application);
         close(false);
-        router.refresh();
         break;
       case "duplicate":
         setDuplicate(outcome.existing);

@@ -23,7 +23,7 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 ### P1 — Tracker (CORE, stands alone)
 - [x] **P1a** — API + data layer: applications CRUD (`/api/applications`), case-insensitive dedupe (warn, don't block), URL-prefill service (`/api/prefill`, metadata-first + SSRF guards)
 - [x] **P1b** — Manual **"Add row"** dialog (primary entry point) with URL-prefill field; duplicate-warning flow
-- [ ] **P1c** — Editable TanStack table (inline status/notes/appliedDate)
+- [x] **P1c** — Editable TanStack table (inline status/notes/appliedDate)
 - [ ] **P1d** — Kanban board (drag to change status); table/board toggle
 
 ### P2 — Discover (a feed into the Tracker)
@@ -59,3 +59,4 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - 2026-08-14 — P1a: applications API (CRUD + dedupe) + URL-prefill service; verified end-to-end via dev server — `3b318a3`
 - 2026-08-14 — Testing: Vitest + `tests/` + scoped-TDD rule (SPEC/CLAUDE); backfilled 47 tests for P0–P1a pure logic — `f1521f1`
 - 2026-08-14 — P1b: Tracker page + Add-row dialog (URL-prefill + dup-warning); draft/prefill/interpret logic test-first (15 tests, 62 total); hand-rolled shadcn-style UI primitives (no Radix) — `1b3857a`
+- 2026-08-14 — P1c: inline-editable TanStack table (v8; pinned off unstable v9) + delete; client-owned Tracker state; patch-diff logic test-first (10 tests, 72 total) — `<pending>`
