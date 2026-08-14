@@ -1,35 +1,42 @@
 # Roadmap
 
-Personal job-search app (Discover + Track). Source of truth for scope is
-`.private/SPEC.md`; this file tracks build progress.
+Personal job-search app — **Track is the core; Discover is one optional feed
+into it.** Source of truth for scope is `.private/SPEC.md`; this file tracks
+build progress.
 
 ## Phases
 
-### P0 — Foundation + Discover (read-only)
+### P0 — Foundation + ingest
 - [x] **P0a** — Scaffold (Next.js/TS/Tailwind/shadcn/Prisma), schema, first migration
 - [x] **P0b** — Port `find_jobs.py` location tagging → `location.ts` + `scope.ts` (+ parity check)
-- [x] **P0c** — Pluggable ingest for both Simplify repos (`npm run ingest`)
-- [ ] **P0d** — Discover table (filters, sort, top-tier bump)
+- [x] **P0c** — Pluggable ingest for both Simplify JSON repos (`npm run ingest`)
+- [ ] **P0d** — Add speedyapply/2027-AI-College-Jobs source (markdown-table parser behind the seam) — _deferred: build after P1 (Track-first)_
 
-### P1 — Tracker
-- [ ] Save-to-tracker (duplicate warning)
-- [ ] Editable TanStack table (inline status/notes)
+### P1 — Tracker (CORE, stands alone)
+- [ ] Manual **"Add row"** — first-class, primary entry point
+- [ ] **URL-prefill helper** — paste a job URL → single on-demand fetch → pre-fill company + title (metadata-first: `<title>`/`og:title`/JSON-LD `JobPosting`, blank fallback; edit & save; not scraping)
+- [ ] Editable TanStack table (inline status/notes/appliedDate)
+- [ ] Statuses + duplicate warning
 - [ ] Kanban board (drag to change status)
-- [ ] Manual "Add row"
 
-### P2 — Dashboard
+### P2 — Discover (a feed into the Tracker)
+- [ ] Ranked read-only table over ingested jobs + filters (bucket, company, min fitScore, active-only, category, roleKind) + top-tier bump
+- [ ] "Save to tracker" (creates an Application; warn on duplicate)
+
+### P3 — Dashboard
 - [ ] KPI cards (applied, in-progress, response rate, offers)
 - [ ] Status donut/funnel
 - [ ] Applications-over-time timeline
 - [ ] Top companies
 
-### P3 — Fit scorer (optional/pluggable)
+### P4 — Fit scorer (optional/pluggable)
 - [ ] Claude-based scorer via `ANTHROPIC_API_KEY` (no key → skip)
 - [ ] Store `fitScore` + `fitReason`; score on dataset metadata
 
-### P4 — Future (seams only for now)
-- [ ] Extra ATS sources (Greenhouse / Lever / Ashby)
+### P5 — Future / optional (seams only for now)
+- [ ] ATS sources (Greenhouse / Lever / Ashby) — deferred/optional
 - [ ] Gmail status scan (bump `Application.status`)
+- Explicitly out of scope: generic scraping of LinkedIn / Indeed
 
 ## Devlog
 
