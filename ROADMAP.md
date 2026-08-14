@@ -35,4 +35,4 @@ Personal job-search app (Discover + Track). Source of truth for scope is
 
 - 2026-08-14 — P0a: scaffolded Next 15 + Prisma/SQLite, initial migration, git init — `5984686`
 - 2026-08-14 — P0b: ported location tagging (location.ts/scope.ts/scoring.ts) + parity check (15/15 vs Python) — `5a7d705`
-- 2026-08-14 — P0c: pluggable ingest (source seam + normalizer + upsert); live run 4627 jobs, idempotent — `<pending>`
+- 2026-08-14 — P0c: pluggable ingest (source seam + normalizer + upsert); live run 4627 jobs, idempotent — `1c8481d`
