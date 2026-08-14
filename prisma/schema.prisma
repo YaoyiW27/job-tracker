@@ -34,7 +34,7 @@ model Job {
 
   roleKind        String // RoleKind: NEW_GRAD | INTERN
   locationFit     String // LocationFit: VANCOUVER | CANADA_REMOTE | REMOTE_GENERIC | CANADA_OTHER | US_REMOTE | US_ONSITE | OTHER
-  locationRank    Int    // 0..6 mirror of the bucket, for cheap indexed sorting
+  locationRank    Int    // effective sort rank: bucket rank (0..6) with top-tier bump baked in
   inScope         Boolean @default(true)
   relocation      Boolean @default(false)
   topTier         Boolean @default(false)

@@ -8,7 +8,7 @@ Personal job-search app (Discover + Track). Source of truth for scope is
 ### P0 — Foundation + Discover (read-only)
 - [x] **P0a** — Scaffold (Next.js/TS/Tailwind/shadcn/Prisma), schema, first migration
 - [x] **P0b** — Port `find_jobs.py` location tagging → `location.ts` + `scope.ts` (+ parity check)
-- [ ] **P0c** — Pluggable ingest for both Simplify repos (`npm run ingest`)
+- [x] **P0c** — Pluggable ingest for both Simplify repos (`npm run ingest`)
 - [ ] **P0d** — Discover table (filters, sort, top-tier bump)
 
 ### P1 — Tracker
@@ -35,3 +35,4 @@ Personal job-search app (Discover + Track). Source of truth for scope is
 
 - 2026-08-14 — P0a: scaffolded Next 15 + Prisma/SQLite, initial migration, git init — `5984686`
 - 2026-08-14 — P0b: ported location tagging (location.ts/scope.ts/scoring.ts) + parity check (15/15 vs Python) — `5a7d705`
+- 2026-08-14 — P0c: pluggable ingest (source seam + normalizer + upsert); live run 4627 jobs, idempotent — `<pending>`
