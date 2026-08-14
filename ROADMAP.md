@@ -60,4 +60,4 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - 2026-08-14 — Testing: Vitest + `tests/` + scoped-TDD rule (SPEC/CLAUDE); backfilled 47 tests for P0–P1a pure logic — `f1521f1`
 - 2026-08-14 — P1b: Tracker page + Add-row dialog (URL-prefill + dup-warning); draft/prefill/interpret logic test-first (15 tests, 62 total); hand-rolled shadcn-style UI primitives (no Radix) — `1b3857a`
 - 2026-08-14 — P1c: inline-editable TanStack table (v8; pinned off unstable v9) + delete; client-owned Tracker state; patch-diff logic test-first (10 tests, 72 total) — `bf5744b`
-- 2026-08-14 — P1d: Kanban board (native drag-to-change-status) + table/board toggle; group/move logic test-first (5 tests, 77 total). P1 complete — `<pending>`
+- 2026-08-14 — P1d: Kanban board (native drag-to-change-status) + table/board toggle; group/move logic test-first (5 tests, 77 total). P1 complete — `8a6b4fd`
