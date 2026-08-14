@@ -178,7 +178,9 @@ export function DiscoverTable() {
                 <td className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">
                   {BUCKET_LABEL[j.locationFit] ?? j.locationFit}
                 </td>
-                <td className="px-3 py-2 tabular-nums">{j.fitScore ?? "—"}</td>
+                <td className="px-3 py-2 tabular-nums" title={j.fitReason ?? ""}>
+                  {j.fitScore ?? "—"}
+                </td>
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
                   {j.topTier && <span title="top-tier">★ </span>}
                   {j.company}

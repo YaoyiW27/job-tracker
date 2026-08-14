@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "ingest": "tsx scripts/ingest.ts",
+    "score": "tsx scripts/score.ts",
     "check:location": "tsx scripts/check_location.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -15,6 +16,7 @@
     "db:generate": "prisma generate"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.117.1",
     "@prisma/client": "^6.2.1",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
