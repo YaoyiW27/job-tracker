@@ -1,0 +1,28 @@
+# personal context — never pushed. Claude Code still reads these locally.
+.private/
+
+# secrets
+.env
+.env.local
+
+# local database
+*.db
+*.sqlite
+*.sqlite3
+
+# node / next
+node_modules/
+.next/
+out/
+dist/
+
+# python (find_jobs.py)
+__pycache__/
+*.pyc
+.venv/
+
+# misc
+.DS_Store
+*.csv
+# typescript build cache
+*.tsbuildinfo

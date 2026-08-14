@@ -1,0 +1,74 @@
+// Prisma schema — SQLite, single portable file.
+//
+// NOTE: SQLite does not support Prisma native `enum`s, so roleKind /
+// locationFit / status are `String` columns. Their allowed values live in
+// src/lib/enums.ts as TypeScript union types + const maps (same value sets).
+// Moving to Postgres later (for a Vercel deploy) would let these become real
+// enums with a straightforward migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id         String @id @default(cuid())
+  source     String // e.g. "simplify:new-grad" — the ingest source that produced this row
+  externalId String? // dataset's own `id`, if present
+
+  company    String
+  companyUrl String?
+  title      String
+  locations  String // JSON-encoded string[] (SQLite has no array type)
+  url        String  @unique // primary dedupe key
+  datePosted DateTime?
+  dateUpdated DateTime?
+  active     Boolean @default(true)
+  isVisible  Boolean @default(true)
+  terms      String? // JSON-encoded string[]
+  category   String? // dataset category, if present
+
+  roleKind        String // RoleKind: NEW_GRAD | INTERN
+  locationFit     String // LocationFit: VANCOUVER | CANADA_REMOTE | REMOTE_GENERIC | CANADA_OTHER | US_REMOTE | US_ONSITE | OTHER
+  locationRank    Int    // 0..6 mirror of the bucket, for cheap indexed sorting
+  inScope         Boolean @default(true)
+  relocation      Boolean @default(false)
+  topTier         Boolean @default(false)
+  sponsorshipNote String? // raw sponsor/citizen signal read from the record
+  authFlag        String? // e.g. "verify work authorization"
+  salary          String? // free-text; often missing
+
+  fitScore  Int?    // 0..100, null until scored (optional P3 step)
+  fitReason String?
+
+  rawJson     String // full source record, JSON-encoded (schema-tolerant)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @updatedAt
+
+  application Application? // back-relation (1:0..1)
+
+  @@index([company, title])
+  @@index([locationRank])
+}
+
+model Application {
+  id    String  @id @default(cuid())
+  jobId String? @unique // nullable for manual rows; unique enforces 1:1 with Job
+  job   Job?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  company       String // denormalized so manual rows stand alone
+  title         String
+  url           String?
+  status        String   @default("SAVED") // AppStatus: SAVED|APPLIED|OA|INTERVIEW|OFFER|REJECTED|GHOSTED
+  appliedDate   DateTime?
+  notes         String?
+  resumeVersion String?
+  salary        String?
+  sortOrder     Int      @default(0) // ordering within a Kanban column
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
