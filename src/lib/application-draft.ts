@@ -8,6 +8,7 @@ export interface PrefillLike {
   company: string;
   title: string;
   salary?: string | null;
+  location?: string | null;
 }
 
 // Title/company separators, longest/most-specific first.
@@ -33,8 +34,10 @@ export function cleanPrefill(raw: PrefillLike): {
   company: string;
   title: string;
   salary: string | null;
+  location: string | null;
 } {
   const salary = raw.salary?.trim() || null;
+  const location = raw.location?.trim() || null;
   let company = raw.company.trim();
   let title = raw.title.trim();
 
@@ -51,7 +54,7 @@ export function cleanPrefill(raw: PrefillLike): {
     }
   }
 
-  return { company, title, salary };
+  return { company, title, salary, location };
 }
 
 export interface ApplicationDraftInput {

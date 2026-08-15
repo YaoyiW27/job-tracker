@@ -69,6 +69,7 @@ model Application {
   notes         String?
   resumeVersion String?
   salary        String?
+  location      String? // as the posting states it; prefilled, then editable
   sortOrder     Int      @default(0) // ordering within a Kanban column
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

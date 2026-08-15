@@ -8,6 +8,7 @@ export const EDITABLE_FIELDS = [
   "status",
   "url",
   "appliedDate",
+  "location",
   "salary",
   "notes",
   "resumeVersion",
@@ -22,6 +23,7 @@ export interface AppLike {
   status: string;
   url: string | null;
   appliedDate: string | Date | null;
+  location: string | null;
   salary: string | null;
   notes: string | null;
   resumeVersion: string | null;
@@ -42,6 +44,7 @@ export function toEditableRow(app: AppLike): EditableRow {
     status: app.status ?? "",
     url: app.url ?? "",
     appliedDate: dateToYmd(app.appliedDate),
+    location: app.location ?? "",
     salary: app.salary ?? "",
     notes: app.notes ?? "",
     resumeVersion: app.resumeVersion ?? "",

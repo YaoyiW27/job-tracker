@@ -153,14 +153,14 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
       ch.accessor("company", {
         header: "Company",
         cell: ({ row }) => textCell(row.original, "company"),
-        meta: { className: "min-w-[8rem]" },
+        meta: { className: "min-w-[7rem]" },
       }),
       // Widths are hints, not a fixed layout: the date input has an intrinsic
       // size that a table-fixed percentage was clipping.
       ch.accessor("title", {
         header: "Title",
         cell: ({ row }) => textCell(row.original, "title"),
-        meta: { className: "w-[24%] min-w-[11rem]" },
+        meta: { className: "w-[22%] min-w-[10rem]" },
       }),
       ch.accessor("status", {
         header: "Status",
@@ -188,31 +188,40 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
         header: "Applied",
         cell: ({ row }) => textCell(row.original, "appliedDate", "date"),
       }),
+      ch.accessor("location", {
+        header: "Location",
+        cell: ({ row }) => textCell(row.original, "location"),
+        meta: { className: "w-[13%] min-w-[7rem]" },
+      }),
       ch.accessor("salary", {
         header: "Salary",
         cell: ({ row }) => textCell(row.original, "salary"),
-        meta: { className: "w-[16%] min-w-[9rem]" },
+        meta: { className: "w-[15%] min-w-[8rem]" },
       }),
       ch.accessor("notes", {
         header: "Notes",
         enableSorting: false,
         cell: ({ row }) => textCell(row.original, "notes"),
-        meta: { className: "w-[14%]" },
+        meta: { className: "w-[13%] min-w-[6rem]" },
       }),
       // Editable, not just a link: a row added from pasted text has no URL yet,
       // and there was previously no way to add one after the fact.
       ch.display({
         id: "url",
         header: "Link",
+        // Needs a floor: the column would otherwise size to the word "Link" and
+        // squeeze the input down to a few unclickable pixels next to "open".
+        meta: { className: "w-[12%] min-w-[8rem]" },
         cell: ({ row }) => (
           <div className="flex items-center gap-1">
-            {textCell(row.original, "url", "url")}
+            <div className="min-w-0 flex-1">{textCell(row.original, "url", "url")}</div>
             {row.original.url && (
               <a
                 href={row.original.url}
                 target="_blank"
                 rel="noreferrer"
-                className="shrink-0 pr-2 text-blue-600 hover:underline dark:text-blue-400"
+                title={row.original.url}
+                className="shrink-0 pr-1 text-xs text-blue-600 hover:underline dark:text-blue-400"
               >
                 open
               </a>

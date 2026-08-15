@@ -31,6 +31,7 @@ const emptyDraft = {
   title: "",
   status: APP_STATUS.SAVED as string,
   appliedDate: "",
+  location: "",
   salary: "",
   notes: "",
 };
@@ -87,12 +88,18 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
         );
         return;
       }
-      const cleaned = cleanPrefill({ company: data.company, title: data.title, salary: data.salary });
+      const cleaned = cleanPrefill({
+        company: data.company,
+        title: data.title,
+        salary: data.salary,
+        location: data.location,
+      });
       setDraft((d) => ({
         ...d,
         company: cleaned.company || d.company,
         title: cleaned.title || d.title,
         salary: cleaned.salary || d.salary,
+        location: cleaned.location || d.location,
       }));
       setPrefillNote(
         cleaned.company || cleaned.title
@@ -120,6 +127,7 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
         // Your date if you typed one; otherwise today when saving straight as
         // APPLIED or further.
         appliedDate: appliedDateForNewRow(draft.status, draft.appliedDate),
+        location: draft.location || null,
         salary: draft.salary || null,
         notes: draft.notes || null,
         force,
@@ -275,6 +283,16 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
                 onChange={(e) => set("appliedDate", e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="location">Location (optional)</Label>
+            <Input
+              id="location"
+              placeholder="Vancouver, BC · Remote (Canada) · …"
+              value={draft.location}
+              onChange={(e) => set("location", e.target.value)}
+            />
           </div>
 
           <div className="space-y-1.5">

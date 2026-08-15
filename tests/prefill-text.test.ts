@@ -40,20 +40,20 @@ describe("buildExtractMessages", () => {
 
 describe("normalizeExtract", () => {
   it("keeps the three fields as trimmed strings", () => {
-    expect(normalizeExtract({ company: " IBM ", title: " SRE ", salary: " $120k " })).toEqual({
+    expect(
+      normalizeExtract({ company: " IBM ", title: " SRE ", salary: " $120k ", location: " Vancouver, BC " }),
+    ).toEqual({
       company: "IBM",
       title: "SRE",
       salary: "$120k",
+      location: "Vancouver, BC",
     });
   });
 
   it("turns missing, empty and literal-null answers into null", () => {
-    expect(normalizeExtract({})).toEqual({ company: null, title: null, salary: null });
-    expect(normalizeExtract({ company: "", title: "   ", salary: null })).toEqual({
-      company: null,
-      title: null,
-      salary: null,
-    });
+    const blank = { company: null, title: null, salary: null, location: null };
+    expect(normalizeExtract({})).toEqual(blank);
+    expect(normalizeExtract({ company: "", title: "   ", salary: null, location: "" })).toEqual(blank);
   });
 
   it("rejects the model writing the word null as a value", () => {
@@ -65,8 +65,9 @@ describe("normalizeExtract", () => {
   });
 
   it("survives a non-object response", () => {
-    expect(normalizeExtract(null)).toEqual({ company: null, title: null, salary: null });
-    expect(normalizeExtract("nope")).toEqual({ company: null, title: null, salary: null });
+    const blank = { company: null, title: null, salary: null, location: null };
+    expect(normalizeExtract(null)).toEqual(blank);
+    expect(normalizeExtract("nope")).toEqual(blank);
   });
 });
 
@@ -100,6 +101,7 @@ describe("extractFromText", () => {
       company: "IBM",
       title: "SRE",
       salary: "$120k",
+      location: null,
     });
   });
 

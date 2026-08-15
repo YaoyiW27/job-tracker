@@ -65,6 +65,7 @@ export async function POST(req: Request) {
       url,
       status: body.status as string | undefined,
       appliedDate: body.appliedDate as string | null | undefined,
+      location: body.location as string | null | undefined,
       notes: body.notes as string | null | undefined,
       resumeVersion: body.resumeVersion as string | null | undefined,
       salary: body.salary as string | null | undefined,

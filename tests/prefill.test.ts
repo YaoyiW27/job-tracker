@@ -124,3 +124,48 @@ describe("blocked / interstitial responses", () => {
     expect(r.error).toBeUndefined();
   });
 });
+
+describe("location from JSON-LD", () => {
+  const ld = (job: object) =>
+    `<script type="application/ld+json">${JSON.stringify({ "@type": "JobPosting", ...job })}</script>`;
+
+  it("reads city, region and country from jobLocation", () => {
+    const html = ld({
+      title: "SRE",
+      jobLocation: {
+        "@type": "Place",
+        address: {
+          addressLocality: "Vancouver",
+          addressRegion: "BC",
+          addressCountry: "Canada",
+        },
+      },
+    });
+    expect(parseMetadata(html).location).toBe("Vancouver, BC, Canada");
+  });
+
+  it("skips the parts a posting leaves out", () => {
+    const html = ld({ title: "SRE", jobLocation: { address: { addressLocality: "Toronto" } } });
+    expect(parseMetadata(html).location).toBe("Toronto");
+  });
+
+  it("takes the first of several locations rather than concatenating them", () => {
+    const html = ld({
+      title: "SRE",
+      jobLocation: [
+        { address: { addressLocality: "Vancouver", addressRegion: "BC" } },
+        { address: { addressLocality: "Toronto", addressRegion: "ON" } },
+      ],
+    });
+    expect(parseMetadata(html).location).toBe("Vancouver, BC");
+  });
+
+  it("says remote when the posting is flagged remote", () => {
+    const html = ld({ title: "SRE", jobLocationType: "TELECOMMUTE" });
+    expect(parseMetadata(html).location).toBe("Remote");
+  });
+
+  it("is null when the posting gives no location", () => {
+    expect(parseMetadata(ld({ title: "SRE" })).location).toBeNull();
+  });
+});

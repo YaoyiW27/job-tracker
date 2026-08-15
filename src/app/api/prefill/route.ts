@@ -33,7 +33,14 @@ export async function POST(req: Request) {
       // Soft failure, same as the URL path: blanks plus a reason, so the dialog
       // stays usable instead of dead-ending.
       return NextResponse.json(
-        { company: "", title: "", salary: null, via: [], error: "could not read that posting" },
+        {
+          company: "",
+          title: "",
+          salary: null,
+          location: null,
+          via: [],
+          error: "could not read that posting",
+        },
         { status: 200 },
       );
     }
@@ -41,6 +48,7 @@ export async function POST(req: Request) {
       company: result.company ?? "",
       title: result.title ?? "",
       salary: result.salary,
+      location: result.location,
       via: ["pasted text"],
     });
   }
@@ -55,7 +63,7 @@ export async function POST(req: Request) {
   } catch (err) {
     if (err instanceof PrefillError) {
       return NextResponse.json(
-        { company: "", title: "", salary: null, via: [], error: err.message },
+        { company: "", title: "", salary: null, location: null, via: [], error: err.message },
         { status: 200 },
       );
     }

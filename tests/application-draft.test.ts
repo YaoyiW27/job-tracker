@@ -11,6 +11,7 @@ describe("cleanPrefill", () => {
       company: "Acme",
       title: "Senior Engineer",
       salary: null,
+      location: null,
     });
   });
 
@@ -19,22 +20,23 @@ describe("cleanPrefill", () => {
       company: "Acme Corp",
       title: "Backend Engineer",
       salary: null,
+      location: null,
     });
   });
 
   it("splits on a pipe separator", () => {
     const r = cleanPrefill({ company: "", title: "Data Scientist | Globex" });
-    expect(r).toEqual({ company: "Globex", title: "Data Scientist", salary: null });
+    expect(r).toEqual({ company: "Globex", title: "Data Scientist", salary: null, location: null });
   });
 
   it("splits on ' at '", () => {
     const r = cleanPrefill({ company: "", title: "ML Engineer at Initech" });
-    expect(r).toEqual({ company: "Initech", title: "ML Engineer", salary: null });
+    expect(r).toEqual({ company: "Initech", title: "ML Engineer", salary: null, location: null });
   });
 
   it("drops boilerplate company segments like 'Careers'", () => {
     const r = cleanPrefill({ company: "", title: "Software Engineer - Careers" });
-    expect(r).toEqual({ company: "", title: "Software Engineer", salary: null });
+    expect(r).toEqual({ company: "", title: "Software Engineer", salary: null, location: null });
   });
 
   it("leaves a separatorless title alone", () => {
@@ -42,6 +44,7 @@ describe("cleanPrefill", () => {
       company: "",
       title: "Careers",
       salary: null,
+      location: null,
     });
   });
 
@@ -53,7 +56,7 @@ describe("cleanPrefill", () => {
 
   it("trims whitespace and preserves salary", () => {
     const r = cleanPrefill({ company: "  Acme ", title: "  SWE ", salary: "USD 120000" });
-    expect(r).toEqual({ company: "Acme", title: "SWE", salary: "USD 120000" });
+    expect(r).toEqual({ company: "Acme", title: "SWE", salary: "USD 120000", location: null });
   });
 });
 

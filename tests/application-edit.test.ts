@@ -14,6 +14,7 @@ const base = {
   status: "APPLIED",
   url: "https://jobs.acme.com/1",
   appliedDate: "2026-08-12T00:00:00.000Z",
+  location: "Vancouver, BC",
   salary: "USD 120k",
   notes: "referred by X",
   resumeVersion: "v3",
@@ -29,9 +30,18 @@ describe("toEditableRow", () => {
     );
   });
   it("turns nulls into empty strings", () => {
-    const r = toEditableRow({ ...base, url: null, salary: null, notes: null, resumeVersion: null, appliedDate: null });
+    const r = toEditableRow({
+      ...base,
+      url: null,
+      salary: null,
+      notes: null,
+      resumeVersion: null,
+      appliedDate: null,
+      location: null,
+    });
     expect(r.url).toBe("");
     expect(r.salary).toBe("");
+    expect(r.location).toBe("");
     expect(r.notes).toBe("");
     expect(r.resumeVersion).toBe("");
     expect(r.appliedDate).toBe("");

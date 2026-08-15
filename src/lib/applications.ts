@@ -78,6 +78,7 @@ export interface CreateApplicationInput {
   url?: string | null;
   status?: string;
   appliedDate?: string | null;
+  location?: string | null;
   notes?: string | null;
   resumeVersion?: string | null;
   salary?: string | null;
@@ -95,6 +96,7 @@ export async function createApplication(input: CreateApplicationInput) {
       url: input.url?.trim() || null,
       status,
       appliedDate: parseDate(input.appliedDate),
+      location: input.location ?? null,
       notes: input.notes ?? null,
       resumeVersion: input.resumeVersion ?? null,
       salary: input.salary ?? null,
@@ -109,6 +111,7 @@ export interface UpdateApplicationInput {
   url?: string | null;
   status?: string;
   appliedDate?: string | null;
+  location?: string | null;
   notes?: string | null;
   resumeVersion?: string | null;
   salary?: string | null;
@@ -122,6 +125,7 @@ export async function updateApplication(id: string, patch: UpdateApplicationInpu
   if (patch.url !== undefined) data.url = patch.url?.trim() || null;
   if (patch.status !== undefined) data.status = patch.status;
   if (patch.appliedDate !== undefined) data.appliedDate = parseDate(patch.appliedDate);
+  if (patch.location !== undefined) data.location = patch.location?.trim() || null;
   if (patch.notes !== undefined) data.notes = patch.notes;
   if (patch.resumeVersion !== undefined) data.resumeVersion = patch.resumeVersion;
   if (patch.salary !== undefined) data.salary = patch.salary;

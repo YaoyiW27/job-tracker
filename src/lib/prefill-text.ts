@@ -19,6 +19,7 @@ export interface ExtractResult {
   company: string | null;
   title: string | null;
   salary: string | null;
+  location: string | null;
 }
 
 /** Minimal client surface — lets tests inject a stub, as the scorer does. */
@@ -38,16 +39,21 @@ export const EXTRACT_SCHEMA = {
       type: ["string", "null"],
       description: "compensation exactly as written, e.g. '$120,000 - $150,000 CAD'; null if absent",
     },
+    location: {
+      type: ["string", "null"],
+      description: "where the job is, e.g. 'Vancouver, BC, Canada' or 'Remote (Canada)'; null if absent",
+    },
   },
-  required: ["company", "title", "salary"],
+  required: ["company", "title", "salary", "location"],
 } as const;
 
-const SYSTEM = `You extract three fields from a pasted job posting: the hiring company, the job title, and the compensation.
+const SYSTEM = `You extract four fields from a pasted job posting: the hiring company, the job title, the compensation, and the location.
 
 Rules:
 - Copy what the posting says. Do not paraphrase a title or expand a company name.
 - Return null for anything the posting does not state. Never guess: no inferring salary from the company's size or the seniority of the role, and no inferring the company from the job board it was posted on.
 - Salary: reproduce the range as written, including currency and period. Null if the posting gives no figures.
+- Location: as the posting states it. Say "Remote" (with the region in brackets when given, e.g. "Remote (Canada)") for remote roles. Null if the posting does not say.
 - The paste often includes site navigation and boilerplate. Ignore it.`;
 
 export function isExtractionEnabled(): boolean {
@@ -77,7 +83,12 @@ function field(v: unknown): string | null {
 
 export function normalizeExtract(raw: unknown): ExtractResult {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { company: field(r.company), title: field(r.title), salary: field(r.salary) };
+  return {
+    company: field(r.company),
+    title: field(r.title),
+    salary: field(r.salary),
+    location: field(r.location),
+  };
 }
 
 /**

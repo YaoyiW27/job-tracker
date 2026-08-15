@@ -8,6 +8,7 @@ export interface PrefillResult {
   company: string;
   title: string;
   salary: string | null;
+  location: string | null;
   /** Which signals produced the values, for transparency/debugging. */
   via: string[];
   error?: string;
@@ -97,6 +98,36 @@ interface JobLd {
   title?: string;
   company?: string;
   salary?: string;
+  location?: string | null;
+}
+
+/**
+ * "City, Region, Country" from schema.org jobLocation, skipping the parts a
+ * posting omits. Multi-location posts take the first entry — a joined list is
+ * noise in a one-line column. A remote flag wins: it is the more useful answer.
+ */
+function jobLocation(n: Record<string, unknown>): string | null {
+  const type = n.jobLocationType;
+  if (typeof type === "string" && type.toUpperCase().includes("TELECOMMUTE")) return "Remote";
+
+  const raw = n.jobLocation;
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  if (!first || typeof first !== "object") return null;
+  const addr = (first as Record<string, unknown>).address as Record<string, unknown> | undefined;
+  if (!addr || typeof addr !== "object") return null;
+
+  const country = addr.addressCountry;
+  const parts = [
+    addr.addressLocality,
+    addr.addressRegion,
+    typeof country === "object" && country
+      ? (country as Record<string, unknown>).name
+      : country,
+  ]
+    .filter((v): v is string => typeof v === "string" && v.trim() !== "")
+    .map((v) => decodeEntities(v.trim()));
+
+  return parts.length ? parts.join(", ") : null;
 }
 
 function jsonLdJob(html: string): JobLd | null {
@@ -139,6 +170,7 @@ function jsonLdJob(html: string): JobLd | null {
         title: typeof n.title === "string" ? decodeEntities(n.title) : undefined,
         company: company ? decodeEntities(String(company)) : undefined,
         salary,
+        location: jobLocation(n),
       };
     }
   }
@@ -218,7 +250,14 @@ export function parseMetadata(html: string): PrefillResult {
       ? "the site returned a bot-check page, not the posting — it blocks automated fetching"
       : undefined;
 
-  return { company, title, salary: ld?.salary ?? null, via, ...(error ? { error } : {}) };
+  return {
+    company,
+    title,
+    salary: ld?.salary ?? null,
+    location: ld?.location ?? null,
+    via,
+    ...(error ? { error } : {}),
+  };
 }
 
 export async function prefillFromUrl(rawUrl: string): Promise<PrefillResult> {
