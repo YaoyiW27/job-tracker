@@ -11,7 +11,13 @@ import {
 } from "./prompt";
 import { discoverResumeVariants } from "./variants";
 
-export { isScoringEnabled, formatFitReason, looksLikeFullDescription } from "./prompt";
+export {
+  isScoringEnabled,
+  formatFitReason,
+  looksLikeFullDescription,
+  countWords,
+  MIN_DESCRIPTION_WORDS,
+} from "./prompt";
 export type { JobMeta, ResumeVariant, ScoreResult } from "./prompt";
 export { discoverResumeVariants } from "./variants";
 

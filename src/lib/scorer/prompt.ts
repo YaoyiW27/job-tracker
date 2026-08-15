@@ -167,8 +167,18 @@ export function formatFitReason(r: ScoreResult): string {
  * confident number computed from almost nothing, and the low score reads as
  * "bad job" rather than "bad input". Cheap to catch, expensive to miss.
  */
-export function looksLikeFullDescription(text: string, minWords = 50): boolean {
-  return text.trim().split(/\s+/).filter(Boolean).length >= minWords;
+export const MIN_DESCRIPTION_WORDS = 50;
+
+/** Word count used by both the live counter in the UI and the server-side gate. */
+export function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+export function looksLikeFullDescription(
+  text: string,
+  minWords = MIN_DESCRIPTION_WORDS,
+): boolean {
+  return countWords(text) >= minWords;
 }
 
 /** Scoring is optional — enabled only when an Anthropic API key is configured. */

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { countWords, MIN_DESCRIPTION_WORDS } from "@/lib/scorer/prompt";
+
 interface ScoreResponse {
   fitScore: number;
   fitReason: string;
@@ -18,7 +20,10 @@ export default function MatchPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const words = description.trim().split(/\s+/).filter(Boolean).length;
+  // Same helper and threshold the server gate uses, so the live counter can
+  // never disagree with what the API will accept.
+  const words = countWords(description);
+  const truncated = words > 0 && words < MIN_DESCRIPTION_WORDS;
 
   async function score(force = false) {
     setLoading(true);
@@ -56,8 +61,8 @@ export default function MatchPage() {
       <label className="block space-y-1">
         <span className="text-sm font-medium">
           Job description{" "}
-          <span className={words && words < 50 ? "text-amber-600" : "text-muted-foreground"}>
-            ({words} words{words > 0 && words < 50 ? " — looks truncated" : ""})
+          <span className={truncated ? "text-amber-600" : "text-muted-foreground"}>
+            ({words} words{truncated ? " — looks truncated" : ""})
           </span>
         </span>
         <textarea

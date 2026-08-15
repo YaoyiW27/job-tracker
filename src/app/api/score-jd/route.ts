@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   isScoringEnabled,
   loadScoreContext,
+  countWords,
   looksLikeFullDescription,
   scoreJob,
   type JobMeta,
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
   // yields a confident number, and a low score then reads as "bad job" when it
   // actually means "bad input".
   if (!looksLikeFullDescription(description) && body.force !== true) {
-    const words = description.split(/\s+/).filter(Boolean).length;
+    const words = countWords(description);
     return NextResponse.json(
       {
         error: `Only ${words} words — that looks like a partial copy. Expand "Show more" on the posting and paste the whole description.`,

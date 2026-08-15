@@ -16,6 +16,7 @@ try {
 import { readFileSync } from "node:fs";
 
 import {
+  countWords,
   isScoringEnabled,
   loadScoreContext,
   looksLikeFullDescription,
@@ -49,7 +50,7 @@ async function main() {
   // Refuse a truncated paste rather than scoring it. A partial copy still
   // produces a confident-looking number, and a low score from a short input
   // reads as "bad job" when it means "bad input".
-  const words = description.split(/\s+/).filter(Boolean).length;
+  const words = countWords(description);
   if (!looksLikeFullDescription(description) && !process.argv.includes("--force")) {
     console.error(
       `[score:jd] Only ${words} words of description — that is almost certainly a partial copy.\n` +
