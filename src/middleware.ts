@@ -26,7 +26,9 @@ export function middleware(req: NextRequest) {
   });
 }
 
-// Protect everything except Next's static assets.
+// Protect everything except Next's static assets and the app icons — browsers
+// fetch favicons outside the authenticated page load (bookmark bars, tab strips),
+// so gating them just leaves a blank icon. They carry no data.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png).*)"],
 };
