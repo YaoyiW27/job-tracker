@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import type { Application } from "@prisma/client";
 import { APP_STATUS } from "@/lib/enums";
+import { statusStyle } from "@/lib/status-style";
 import {
   buildPatch,
   toEditableRow,
@@ -29,6 +30,49 @@ type Props = {
 
 const inputCls =
   "w-full rounded border border-transparent bg-transparent px-2 py-1 text-sm hover:border-input focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring";
+
+/**
+ * Editable cell that grows to fit its contents instead of clipping them — a
+ * long title or salary range used to be readable only by clicking into the cell
+ * and scrolling. Enter commits (Shift+Enter for a real newline).
+ */
+function GrowingCell({
+  value,
+  onChange,
+  onCommit,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onCommit: () => void;
+}) {
+  const ref = React.useRef<HTMLTextAreaElement>(null);
+
+  // Resize on every value change, including the ones that arrive from a
+  // server round-trip rather than typing.
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onCommit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          (e.target as HTMLTextAreaElement).blur();
+        }
+      }}
+      className={`${inputCls} resize-none overflow-hidden leading-snug`}
+    />
+  );
+}
 
 export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props) {
   const [drafts, setDrafts] = React.useState<Record<string, EditableRow>>({});
@@ -81,26 +125,46 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
     if (res.ok) onDeleted(row.id);
   };
 
-  const textCell = (row: Application, field: EditableField, type = "text") => (
-    <input
-      type={type}
-      value={getDraft(row)[field]}
-      onChange={(e) => editField(row, field, e.target.value)}
-      onBlur={() => commit(row)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-      }}
-      className={inputCls}
-    />
-  );
+  const textCell = (row: Application, field: EditableField, type = "text") =>
+    type === "text" ? (
+      <GrowingCell
+        value={getDraft(row)[field]}
+        onChange={(v) => editField(row, field, v)}
+        onCommit={() => commit(row)}
+      />
+    ) : (
+      // date / url keep a real input: the native pickers and validation matter
+      // more there than wrapping does.
+      <input
+        type={type}
+        value={getDraft(row)[field]}
+        onChange={(e) => editField(row, field, e.target.value)}
+        onBlur={() => commit(row)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        className={inputCls}
+      />
+    );
 
   const ch = createColumnHelper<Application>();
   const columns = React.useMemo(
     () => [
-      ch.accessor("company", { header: "Company", cell: ({ row }) => textCell(row.original, "company") }),
-      ch.accessor("title", { header: "Title", cell: ({ row }) => textCell(row.original, "title") }),
+      ch.accessor("company", {
+        header: "Company",
+        cell: ({ row }) => textCell(row.original, "company"),
+        meta: { className: "min-w-[8rem]" },
+      }),
+      // Widths are hints, not a fixed layout: the date input has an intrinsic
+      // size that a table-fixed percentage was clipping.
+      ch.accessor("title", {
+        header: "Title",
+        cell: ({ row }) => textCell(row.original, "title"),
+        meta: { className: "w-[24%] min-w-[11rem]" },
+      }),
       ch.accessor("status", {
         header: "Status",
+        meta: { className: "min-w-[7rem]" },
         cell: ({ row }) => (
           <select
             value={getDraft(row.original).status}
@@ -124,11 +188,16 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
         header: "Applied",
         cell: ({ row }) => textCell(row.original, "appliedDate", "date"),
       }),
-      ch.accessor("salary", { header: "Salary", cell: ({ row }) => textCell(row.original, "salary") }),
+      ch.accessor("salary", {
+        header: "Salary",
+        cell: ({ row }) => textCell(row.original, "salary"),
+        meta: { className: "w-[16%] min-w-[9rem]" },
+      }),
       ch.accessor("notes", {
         header: "Notes",
         enableSorting: false,
         cell: ({ row }) => textCell(row.original, "notes"),
+        meta: { className: "w-[14%]" },
       }),
       // Editable, not just a link: a row added from pasted text has no URL yet,
       // and there was previously no way to add one after the fact.
@@ -193,7 +262,12 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (
-                <th key={h.id} className="px-3 py-2 font-medium">
+                <th
+                  key={h.id}
+                  className={`px-3 py-2 font-medium ${
+                    (h.column.columnDef.meta as { className?: string } | undefined)?.className ?? ""
+                  }`}
+                >
                   {h.isPlaceholder ? null : (
                     <button
                       type="button"
@@ -214,10 +288,14 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              className={`border-b last:border-0 ${savingId === row.original.id ? "opacity-60" : ""}`}
+              // Tinted by status so the state of the whole list reads at a
+              // glance, without going down the Status column one row at a time.
+              className={`border-b transition-colors last:border-0 ${statusStyle(
+                getDraft(row.original).status,
+              ).row} ${savingId === row.original.id ? "opacity-60" : ""}`}
             >
               {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="px-1 py-1 align-middle">
+                <td key={cell.id} className="px-1 py-1 align-top">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
