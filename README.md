@@ -16,6 +16,20 @@ things:
 
 It is **not** an auto-apply or form-autofill tool.
 
+## Daily use
+
+Nothing to run. GitHub Actions ingests and scores every morning, so the site is
+already up to date when you open it. Three things to actually do:
+
+1. **Open the site, enter the password.** On **Discover**, work down the ranked
+   list and hit **Save** on anything worth applying to — it lands in the tracker.
+2. **Add jobs found elsewhere** (LinkedIn, a company's careers page) on
+   **Tracker** → **+ Add row**: paste the URL, click **Prefill**, and company +
+   title fill themselves in. Edit anything, then save.
+3. **Keep statuses current** as you hear back — inline in the table, or by
+   dragging cards in **Board** view. The **Dashboard** charts fill in on their
+   own once there are a few applications; they are empty until then.
+
 ## Stack
 
 Next.js (App Router) + TypeScript · Tailwind CSS v4 · PostgreSQL via Prisma
@@ -121,13 +135,47 @@ each job better. The `.private/` folder is gitignored and never committed.
 | `npm run db:push` | Sync the schema to the database (creates the tables) |
 | `npm run db:migrate` / `db:studio` | Prisma migrate / open Prisma Studio |
 
-## Data sources
+## How ingest works
 
-- [SimplifyJobs/New-Grad-Positions](https://github.com/SimplifyJobs/New-Grad-Positions)
-- [SimplifyJobs/Summer2027-Internships](https://github.com/SimplifyJobs/Summer2027-Internships)
+There is no scraper. Both sources publish a `listings.json` that the ingest
+downloads directly, so there is no HTML parsing, no API key, no rate limit, and
+nothing to get blocked:
 
-Both are community-maintained, update several times daily, and need no API key.
-Adding a new source is a drop-in behind the ingest seam (`src/ingest/sources/`).
+- [SimplifyJobs/New-Grad-Positions](https://github.com/SimplifyJobs/New-Grad-Positions) → tagged `NEW_GRAD`
+- [SimplifyJobs/Summer2027-Internships](https://github.com/SimplifyJobs/Summer2027-Internships) → tagged `INTERN`
+
+Both are community-maintained and update several times daily. The pipeline
+(`src/ingest/`) is four steps:
+
+1. **Fetch** (`sources/simplify.ts`) — one GET per source. A source that fails is
+   logged and skipped; the others still run.
+2. **Extract** (`normalize.ts`) — the datasets rename fields occasionally, so
+   every field is read from a list of candidate keys (company from
+   `company_name` then `company`; salary from `salary` / `salary_range` /
+   `compensation` / `pay`). A record with no company or title is dropped.
+3. **Tag** — three pure, unit-tested functions: `classifyLocation` (the seven
+   buckets), `evaluateScope` (in-scope + work-auth flags), and
+   `effectiveLocationRank` (bucket rank plus a top-tier-company bump). Nothing is
+   filtered out here; poor fits are kept, flagged, and demoted.
+4. **Upsert** (`index.ts`) — keyed on `Job.url`, so re-running never duplicates.
+   Records with no apply link get a synthesized `urn:<source>:<id>` key.
+
+Two behaviors worth knowing:
+
+- **Fit scores survive re-ingest.** `fitScore` / `fitReason` are deliberately left
+  out of the upsert payload, so the nightly run never wipes scoring you paid for.
+- **Closed roles are skipped by default.** Most of each feed is inactive or
+  hidden postings — that's why a run scans ~33k records and keeps ~4.7k. Use
+  `npm run ingest -- --include-inactive` to keep them.
+
+Adding a source means implementing the `Source` interface in
+`src/ingest/sources/types.ts` (one `fetch()` returning raw records) and adding a
+line to `registry.ts`. The orchestrator needs no changes.
+
+The one place that does read a web page is **Prefill**
+(`src/app/api/prefill/route.ts`): when you paste a job URL into **+ Add row** it
+fetches that single page and pulls company + title from JSON-LD / OpenGraph /
+`<title>`. Manual, one page at a time, entirely separate from ingest.
 
 ## Project layout
 
@@ -210,6 +258,10 @@ overrides the model (defaults to `claude-sonnet-5` in CI).
 
 Re-run these `base64` commands and re-set the secret whenever a résumé changes;
 CI has no other way to see the edit.
+
+**GitHub disables scheduled workflows after 60 days with no repository
+activity.** Normal use (any commit) resets the clock; if it does trip, the
+Actions tab shows a banner with a button to re-enable it.
 
 ## Notes
 
