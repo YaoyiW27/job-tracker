@@ -49,7 +49,7 @@ export class ScoreContextError extends Error {
 
 export function loadScoreContext(
   privateDir = join(process.cwd(), ".private"),
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): ScoreContext {
   const model = env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
 

@@ -64,7 +64,7 @@ describe("loadScoreContext sources", () => {
   const env = {
     SCORER_PREFERENCES_B64: b64("prefer builders"),
     SCORER_RESUME_INFRA_B64: b64(RESUME_A),
-  } as NodeJS.ProcessEnv;
+  };
 
   it("falls back to env vars when there is no .private/ — the deployed case", () => {
     const ctx = loadScoreContext(MISSING, env);
@@ -79,11 +79,11 @@ describe("loadScoreContext sources", () => {
   });
 
   it("throws a named error, not ENOENT, when neither source is configured", () => {
-    expect(() => loadScoreContext(MISSING, {} as NodeJS.ProcessEnv)).toThrow(ScoreContextError);
+    expect(() => loadScoreContext(MISSING, {})).toThrow(ScoreContextError);
   });
 
   it("does not accept preferences without any resume", () => {
-    const partial = { SCORER_PREFERENCES_B64: b64("prefer builders") } as NodeJS.ProcessEnv;
+    const partial = { SCORER_PREFERENCES_B64: b64("prefer builders") };
     expect(() => loadScoreContext(MISSING, partial)).toThrow(ScoreContextError);
   });
 });

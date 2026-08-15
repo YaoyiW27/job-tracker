@@ -174,7 +174,21 @@ async function fetchHtml(u: URL): Promise<string> {
  * JSON-LD JobPosting → OpenGraph → <title>. Exported so it can be unit-tested
  * against fixture HTML without a network fetch.
  */
-export function parseMetadata(html: string): Omit<PrefillResult, "error"> {
+export function parseMetadata(html: string): PrefillResult {
+  // An empty body is bot protection, not a page that happens to lack metadata:
+  // careers.ibm.com answers a non-browser client with 202 and zero bytes, and
+  // LinkedIn serves a login wall. Saying "no company/title found" sends you off
+  // to retry a link that can never work.
+  if (!html.trim()) {
+    return {
+      company: "",
+      title: "",
+      salary: null,
+      via: [],
+      error: "the site returned an empty page — it blocks automated fetching",
+    };
+  }
+
   const via: string[] = [];
   const ld = jsonLdJob(html);
 

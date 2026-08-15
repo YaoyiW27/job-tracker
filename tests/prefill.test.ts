@@ -94,3 +94,23 @@ describe("parseMetadata — extraction precedence", () => {
     expect(r.salary).toContain("120000");
   });
 });
+
+describe("blocked / empty responses", () => {
+  it("names bot protection instead of blaming the page's contents", () => {
+    // careers.ibm.com answers a non-browser client with HTTP 202 and zero
+    // bytes; "no company/title found" reads as "try another link", when in
+    // fact this site will never work.
+    const r = parseMetadata("");
+    expect(r.via).toEqual([]);
+    expect(r.error).toMatch(/block|empty/i);
+  });
+
+  it("treats a body with no markup at all as blocked", () => {
+    expect(parseMetadata("   \n  ").error).toMatch(/block|empty/i);
+  });
+
+  it("does not flag a real page that simply lacks job metadata", () => {
+    const html = "<html><head><title>Careers</title></head><body><p>hi</p></body></html>";
+    expect(parseMetadata(html).error).toBeUndefined();
+  });
+});
