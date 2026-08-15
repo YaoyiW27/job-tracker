@@ -1,18 +1,19 @@
-// Prisma schema — SQLite, single portable file.
+// Prisma schema — PostgreSQL (Neon), used by both local scripts and the
+// Vercel deployment.
 //
-// NOTE: SQLite does not support Prisma native `enum`s, so roleKind /
-// locationFit / status are `String` columns. Their allowed values live in
-// src/lib/enums.ts as TypeScript union types + const maps (same value sets).
-// Moving to Postgres later (for a Vercel deploy) would let these become real
-// enums with a straightforward migration.
+// NOTE: roleKind / locationFit / status are kept as `String` columns (with
+// allowed values owned by src/lib/enums.ts) rather than native enums, so the
+// app logic is identical to the original SQLite version. `directUrl` is the
+// non-pooled connection Prisma uses for migrations / db push.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Job {

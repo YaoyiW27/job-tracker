@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "ingest": "tsx scripts/ingest.ts",
     "score": "tsx scripts/score.ts",
     "check:location": "tsx scripts/check_location.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate"

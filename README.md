@@ -32,8 +32,9 @@ git clone <your-repo-url> job-tracker
 cd job-tracker
 npm install
 
-# 1. create the local SQLite database (prisma/dev.db)
-npm run db:migrate
+# 1. set DATABASE_URL + DIRECT_URL in .env to a Postgres db (see Deploy section
+#    for a free Neon setup), then create the tables:
+npm run db:push
 
 # 2. pull jobs into the Discover feed (optional, but populates Discover)
 npm run ingest
@@ -45,8 +46,8 @@ npm run dev
 Open **http://localhost:3000** — it lands on the Tracker. Use the top nav to
 switch between **Tracker**, **Discover**, and **Dashboard**.
 
-The app runs fine with an empty tracker and even with no ingested jobs — every
-step above except `db:migrate` is optional.
+The app runs fine with an empty tracker; `npm run ingest` (and scoring) are
+optional.
 
 ## The three pages
 
@@ -136,9 +137,32 @@ src/ingest/                 pluggable fetch → tag → upsert pipeline
 tests/                      Vitest suites for the pure logic
 ```
 
+## Deploy to a fixed URL (Vercel + Neon)
+
+The app uses PostgreSQL; local scripts and the deployment share one Neon database.
+
+1. **Create a free Postgres** at [neon.tech](https://neon.tech). Copy both
+   connection strings: the **pooled** URL (host contains `-pooler`) → `DATABASE_URL`,
+   and the **direct** URL → `DIRECT_URL`.
+2. **Set up the schema + data** locally against Neon:
+   ```bash
+   # put both URLs in .env, then:
+   npm run db:push      # create tables on Neon
+   npm run ingest       # load jobs
+   npm run score        # optional
+   ```
+3. **Import the repo on [vercel.com](https://vercel.com)** and add Environment
+   Variables: `DATABASE_URL`, `DIRECT_URL`, `APP_PASSWORD` (a password to gate the
+   site), and optionally `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`. Deploy.
+4. Open the Vercel URL — the browser prompts for the password (any username +
+   your `APP_PASSWORD`).
+
+Access is protected by HTTP Basic auth (`src/middleware.ts`) whenever
+`APP_PASSWORD` is set; unset locally, the app stays open.
+
 ## Notes
 
-- Single user, local-first; cleanly deployable to Vercel later (would move SQLite
-  to a hosted Postgres).
+- Single user; the site is gated by `APP_PASSWORD`, not a full account system.
 - Re-run `npm run ingest` anytime to refresh the feed; it dedupes on URL and
-  preserves your applications and fit scores.
+  preserves your applications and fit scores. `npm run ingest`/`score` run
+  locally and write to the same database the site reads.
