@@ -5,6 +5,12 @@ import type { NextRequest } from "next/server";
 // deployment) every request needs HTTP Basic auth with that password; any
 // username works. When it's unset (local dev), the app is open. This keeps the
 // single-user app private on a public URL without a full auth system.
+//
+// KNOWN WEAKNESS, deliberately deferred: there is no rate limiting, so nothing
+// slows down guessing, and the comparison below is not constant-time. Adequate
+// for one person's job list behind a long random password; see ROADMAP.md "P7 —
+// Harden access" before this guards anything more, or before the repo is made
+// public.
 export function middleware(req: NextRequest) {
   const password = process.env.APP_PASSWORD;
   if (!password) return NextResponse.next();

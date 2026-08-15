@@ -51,6 +51,44 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - Note: if ever built, reimplement prompts with **Claude**. Do NOT use
   `career-prep-agent`'s code — it has **no license**. Inspiration only.
 
+### P7 — Harden access (FUTURE — do when there is time)
+
+Today the deployment is gated by `APP_PASSWORD` in `src/middleware.ts`: HTTP
+Basic, one shared password, any username. That is the right size for a
+single-user tracker, but it has known weak spots, and they matter more if this
+repo ever goes public — the code does not leak the password, but it does tell a
+reader exactly what the only barrier is, and the README names the URL.
+
+What is actually weak, worst first:
+
+- [ ] **No rate limiting.** Nothing stops an attacker trying passwords as fast
+      as the network allows. This is the one that turns a mediocre password into
+      a breach. Needs a shared store to count attempts (Vercel KV / Upstash);
+      middleware alone cannot hold state across edge invocations.
+- [ ] **The password is the whole barrier** — no second factor, no session, no
+      account. Basic auth also re-sends it on every single request (encrypted by
+      HTTPS, but a wide exposure surface).
+- [ ] **Comparison is not constant-time** (`provided === password`). Marginal
+      over a network, but free to fix.
+- [ ] **No sign-out and no rotation story.** Changing the password means editing
+      an env var and redeploying.
+
+Options, cheapest first:
+
+1. **A long random `APP_PASSWORD`** — no code, and it defeats the brute force
+   that the missing rate limit would otherwise allow. Do this regardless.
+2. **Vercel Authentication** (project → Deployment Protection) — access requires
+   being logged into the Vercel account that owns the project. Free, no code,
+   and strictly stronger than a shared password. Costs you a Vercel login on
+   each new device.
+3. **GitHub OAuth via Auth.js, allow-listing one account** — nothing to crack,
+   proper sessions, and sign-out. The most work; the right answer if this ever
+   holds anything beyond a job list.
+
+Do NOT go public with the repo before deciding: see the privacy notes in the
+session where this was written — the scorer prompt encodes personal criteria,
+and `scope.ts` states an immigration constraint.
+
 ## Devlog
 
 - 2026-08-14 — P0a: scaffolded Next 15 + Prisma/SQLite, initial migration, git init — `5984686`
