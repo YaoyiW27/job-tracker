@@ -68,3 +68,6 @@ All phase verification lands as repeatable tests in `tests/` (Vitest, `npm test`
 - 2026-08-14 — P3: Dashboard — KPI cards + Recharts (by-status, cumulative over-time, top companies); metrics math test-first (8 tests, 101 total); dataviz single-series palette. P3 complete — `2f8b4af`
 - 2026-08-14 — P4: pluggable Claude fit scorer (opus-5, structured output, refusal-safe, no-key skip) + dual-resume A/B; LaTeX/prompt/normalize logic test-first (14 tests, 115 total). P4 complete — `0b2a4dc`
 - 2026-08-14 — chore: score script auto-loads .env (tsx); verified empty-tracker app run across all pages — `fb44521`
+- 2026-08-14 — fix: US/Vancouver location bug — ambiguous cities (Richmond/Vancouver/Surrey) now disambiguated by state/province; word-boundary US-state detection; re-ingest cut US-in-Vancouver mislabels 22→0 (10 new location tests) — `815f895`
+- 2026-08-14 — feat: freshness as a separate signal — recencyTier + Discover Fit/Newest sort toggle + Fresh badge (fitScore untouched); 10 tests — `815f895`
+- 2026-08-14 — fix: scorer dropped unsupported `effort` param (Haiku 400) + scoreJob skip-safe on API error; live run 20 scored/0 skipped (133 tests) — `815f895`
