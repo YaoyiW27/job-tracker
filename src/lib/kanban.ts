@@ -1,4 +1,5 @@
 import { APP_STATUS, type AppStatus } from "./enums";
+import { dateToYmd, withAppliedDateDefault, type EditableRow } from "./application-edit";
 
 // Pure helpers for the Kanban board: column order, grouping, and computing the
 // patch when a card is dragged to a new column. Unit-tested in tests/kanban.test.ts.
@@ -27,6 +28,16 @@ export function groupByStatus<T extends { status: string }>(apps: T[]): Record<A
 }
 
 /** Patch to apply when a card is dropped on a column, or null if unchanged. */
-export function movePatch(card: { status: string }, toStatus: string): { status: string } | null {
-  return card.status === toStatus ? null : { status: toStatus };
+export function movePatch(
+  card: { status: string; appliedDate: string | Date | null },
+  toStatus: string,
+  today?: string,
+): Partial<EditableRow> | null {
+  if (card.status === toStatus) return null;
+  // Dragging out of SAVED is an "I applied" signal too — same rule as the table.
+  return withAppliedDateDefault(
+    { status: toStatus },
+    { appliedDate: dateToYmd(card.appliedDate) },
+    today,
+  );
 }

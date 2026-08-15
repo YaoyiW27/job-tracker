@@ -69,6 +69,7 @@ export function evaluateScope(input: ScopeInput): ScopeResult {
   const canadaBucket =
     fit === LOCATION_FIT.VANCOUVER ||
     fit === LOCATION_FIT.CANADA_REMOTE ||
+    fit === LOCATION_FIT.BC_OTHER ||
     fit === LOCATION_FIT.CANADA_OTHER;
   if (canadaBucket && AUTH_RESTRICTION_KEYS.some((k) => text.includes(k))) {
     flags.push("verify: may require PR/citizenship/clearance");
@@ -80,6 +81,7 @@ export function evaluateScope(input: ScopeInput): ScopeResult {
     case LOCATION_FIT.VANCOUVER:
     case LOCATION_FIT.CANADA_REMOTE:
     case LOCATION_FIT.REMOTE_GENERIC:
+    case LOCATION_FIT.BC_OTHER:
     case LOCATION_FIT.CANADA_OTHER:
     case LOCATION_FIT.US_REMOTE:
       inScope = true;

@@ -18,12 +18,22 @@ export const TOP_TIER = new Set<string>([
 const VAN_STRONG = [
   "vancouver", "burnaby", "coquitlam", "new westminster",
   "north vancouver", "west vancouver", "port coquitlam", "port moody",
+  "maple ridge", "pitt meadows",
 ];
 // Metro-Vancouver names that ALSO name US/UK cities — only Vancouver with a BC
 // signal, never on their own.
-const VAN_AMBIGUOUS = ["richmond", "surrey", "delta", "langley"];
+const VAN_AMBIGUOUS = ["richmond", "surrey", "delta", "langley", "white rock"];
 
 const BC_KEYS = ["british columbia", ", bc", " bc,", " bc ", " b.c."];
+
+// BC outside Metro Vancouver. Distinctive enough to bucket without a BC signal —
+// ambiguous ones (Victoria, Vernon, Mission…) are left to the BC_KEYS check, so
+// "Victoria, BC" lands here while "Victoria, TX" does not.
+const BC_OTHER_STRONG = [
+  "kelowna", "kamloops", "nanaimo", "prince george", "abbotsford",
+  "chilliwack", "squamish", "whistler", "penticton", "prince rupert",
+  "port alberni", "campbell river", "cranbrook", "salt spring",
+];
 
 // Canada signals: province names/abbreviations + "canada" + major cities.
 export const CANADA_KEYS = [
@@ -68,8 +78,10 @@ export interface LocationClass {
  *
  * A metro-Vancouver name is only VANCOUVER with a BC signal, or when it's an
  * unambiguous BC name with no US signal — so "Richmond, VA" / "Vancouver, WA"
- * bucket as US, while "Richmond, BC" stays Vancouver. Explicit Canada beats US
- * for multi-region posts. US split into remote/on-site per SPEC.md.
+ * bucket as US, while "Richmond, BC" stays Vancouver. BC outside the metro
+ * (Victoria, Kelowna) is BC_OTHER: still a move, but ranked above a
+ * cross-country one. Explicit Canada beats US for multi-region posts. US split
+ * into remote/on-site per SPEC.md.
  */
 export function classifyLocation(locations: string[]): LocationClass {
   const joined = locations.join(" | ").toLowerCase();
@@ -85,23 +97,31 @@ export function classifyLocation(locations: string[]): LocationClass {
   if (vanCity && hasBC) return { fit: LOCATION_FIT.VANCOUVER, relocation: false, isRemote };
   if (vanStrong && !hasUS) return { fit: LOCATION_FIT.VANCOUVER, relocation: false, isRemote };
 
-  // 2. Canada (explicit) — beats US for multi-region posts.
+  // 2. Rest of BC — in-province move, ranked above a cross-country one. Remote
+  // still wins: "Remote — BC" is CANADA_REMOTE, not a move to Victoria.
+  if (hasBC || has(joined, BC_OTHER_STRONG)) {
+    return isRemote
+      ? { fit: LOCATION_FIT.CANADA_REMOTE, relocation: false, isRemote }
+      : { fit: LOCATION_FIT.BC_OTHER, relocation: true, isRemote };
+  }
+
+  // 3. Canada (explicit) — beats US for multi-region posts.
   if (hasCanada) {
     return isRemote
       ? { fit: LOCATION_FIT.CANADA_REMOTE, relocation: false, isRemote }
       : { fit: LOCATION_FIT.CANADA_OTHER, relocation: true, isRemote };
   }
 
-  // 3. US — remote can hire from Canada; on-site needs a visa.
+  // 4. US — remote can hire from Canada; on-site needs a visa.
   if (hasUS) {
     return isRemote
       ? { fit: LOCATION_FIT.US_REMOTE, relocation: false, isRemote }
       : { fit: LOCATION_FIT.US_ONSITE, relocation: true, isRemote };
   }
 
-  // 4. Remote with no identified country — verify eligibility later.
+  // 5. Remote with no identified country — verify eligibility later.
   if (isRemote) return { fit: LOCATION_FIT.REMOTE_GENERIC, relocation: false, isRemote };
 
-  // 5. Everything else: non-remote, outside detected North America.
+  // 6. Everything else: non-remote, outside detected North America.
   return { fit: LOCATION_FIT.OTHER, relocation: true, isRemote };
 }

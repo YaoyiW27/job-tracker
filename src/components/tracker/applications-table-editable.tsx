@@ -14,6 +14,7 @@ import { APP_STATUS } from "@/lib/enums";
 import {
   buildPatch,
   toEditableRow,
+  withAppliedDateDefault,
   type EditableField,
   type EditableRow,
 } from "@/lib/application-edit";
@@ -49,7 +50,8 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
   const commit = React.useCallback(
     async (row: Application) => {
       const draft = drafts[row.id] ?? toEditableRow(row);
-      const patch = buildPatch(toEditableRow(row), draft);
+      const original = toEditableRow(row);
+      const patch = withAppliedDateDefault(buildPatch(original, draft), original);
       if (Object.keys(patch).length === 0) return;
       setSavingId(row.id);
       try {

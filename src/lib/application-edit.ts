@@ -27,7 +27,7 @@ export interface AppLike {
   resumeVersion: string | null;
 }
 
-function dateToYmd(v: string | Date | null): string {
+export function dateToYmd(v: string | Date | null): string {
   if (!v) return "";
   const d = v instanceof Date ? v : new Date(v);
   if (Number.isNaN(d.getTime())) return "";
@@ -46,6 +46,36 @@ export function toEditableRow(app: AppLike): EditableRow {
     notes: app.notes ?? "",
     resumeVersion: app.resumeVersion ?? "",
   };
+}
+
+/**
+ * Today as yyyy-mm-dd in the *local* calendar. Deliberately not
+ * `toISOString().slice(0, 10)`: west of UTC that returns tomorrow's date all
+ * evening, which would stamp the wrong day on anything applied to after ~5pm.
+ */
+export function todayYmd(now: Date = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Moving a row out of SAVED means it was applied to, so stamp today's date when
+ * none is set — the moment the status changes IS the information. Covers a drag
+ * straight to INTERVIEW (you can't interview without applying) and never
+ * overwrites a date the user set, here or earlier. The dashboard's cumulative
+ * chart is keyed on appliedDate, so a missing one silently drops the row.
+ */
+export function withAppliedDateDefault(
+  patch: Partial<EditableRow>,
+  original: Pick<EditableRow, "appliedDate">,
+  today: string = todayYmd(),
+): Partial<EditableRow> {
+  const status = patch.status;
+  if (!status || status === "SAVED") return patch;
+  if (original.appliedDate.trim() || patch.appliedDate?.trim()) return patch;
+  return { ...patch, appliedDate: today };
 }
 
 /**

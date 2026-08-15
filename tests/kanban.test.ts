@@ -39,10 +39,25 @@ describe("groupByStatus", () => {
 });
 
 describe("movePatch", () => {
+  const TODAY = "2026-08-14";
+
   it("returns a status patch when moving to a different column", () => {
-    expect(movePatch({ status: "SAVED" }, "INTERVIEW")).toEqual({ status: "INTERVIEW" });
+    expect(movePatch({ status: "SAVED", appliedDate: "2026-07-01" }, "INTERVIEW", TODAY)).toEqual({
+      status: "INTERVIEW",
+    });
   });
   it("returns null when dropped in the same column", () => {
-    expect(movePatch({ status: "APPLIED" }, "APPLIED")).toBeNull();
+    expect(movePatch({ status: "APPLIED", appliedDate: null }, "APPLIED", TODAY)).toBeNull();
+  });
+  it("stamps today when dragging an undated card out of SAVED", () => {
+    expect(movePatch({ status: "SAVED", appliedDate: null }, "APPLIED", TODAY)).toEqual({
+      status: "APPLIED",
+      appliedDate: TODAY,
+    });
+  });
+  it("does not stamp when dragging back to SAVED", () => {
+    expect(movePatch({ status: "OA", appliedDate: null }, "SAVED", TODAY)).toEqual({
+      status: "SAVED",
+    });
   });
 });

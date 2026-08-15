@@ -21,6 +21,7 @@ const BUCKET_LABEL: Record<string, string> = {
   VANCOUVER: "Vancouver",
   CANADA_REMOTE: "Canada · remote",
   REMOTE_GENERIC: "Remote (verify)",
+  BC_OTHER: "BC · other",
   CANADA_OTHER: "Canada · other",
   US_REMOTE: "US · remote",
   US_ONSITE: "US · on-site",

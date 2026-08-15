@@ -54,13 +54,16 @@ describe("isTopTier", () => {
 
 describe("effectiveLocationRank (top-tier bump)", () => {
   it("bumps relocation tiers (rank >= 3) up one for top-tier", () => {
-    expect(effectiveLocationRank(F.CANADA_OTHER, false)).toBe(3);
-    expect(effectiveLocationRank(F.CANADA_OTHER, true)).toBe(2);
-    expect(effectiveLocationRank(F.US_ONSITE, true)).toBe(4);
+    expect(effectiveLocationRank(F.BC_OTHER, false)).toBe(3);
+    expect(effectiveLocationRank(F.BC_OTHER, true)).toBe(2);
+    expect(effectiveLocationRank(F.CANADA_OTHER, false)).toBe(4);
+    expect(effectiveLocationRank(F.CANADA_OTHER, true)).toBe(3);
+    expect(effectiveLocationRank(F.US_ONSITE, true)).toBe(5);
   });
   it("does not bump the top tiers (rank < 3)", () => {
     expect(effectiveLocationRank(F.VANCOUVER, true)).toBe(0);
     expect(effectiveLocationRank(F.CANADA_REMOTE, true)).toBe(1);
+    expect(effectiveLocationRank(F.REMOTE_GENERIC, true)).toBe(2);
   });
 });
 
@@ -105,5 +108,46 @@ describe.skipIf(!hasPython())("parity vs find_jobs.py", () => {
       expect(PY_TO_TS[pyBucket], `${name}: python bucket ${pyBucket}`).toBe(fit);
       expect(pyReloc, `${name}: python relocation`).toBe(reloc);
     });
+  });
+});
+
+describe("BC outside Metro Vancouver", () => {
+  it("buckets the rest of the province as BC_OTHER, not CANADA_OTHER", () => {
+    for (const loc of ["Victoria, BC, Canada", "Kelowna, BC", "Nanaimo, British Columbia"]) {
+      expect(classifyLocation([loc]).fit, loc).toBe(F.BC_OTHER);
+    }
+  });
+  it("recognizes distinctive BC city names with no province signal", () => {
+    for (const loc of ["Kamloops", "Prince George", "Abbotsford", "Whistler"]) {
+      expect(classifyLocation([loc]).fit, loc).toBe(F.BC_OTHER);
+    }
+  });
+  it("does not claim same-named cities elsewhere", () => {
+    expect(classifyLocation(["Victoria, TX"]).fit).toBe(F.US_ONSITE);
+  });
+  it("treats a BC role as requiring relocation", () => {
+    expect(classifyLocation(["Victoria, BC"]).relocation).toBe(true);
+  });
+  it("prefers remote over an in-province move", () => {
+    expect(classifyLocation(["Remote — BC, Canada"]).fit).toBe(F.CANADA_REMOTE);
+  });
+  it("ranks an in-province move above a cross-country one", () => {
+    const bc = classifyLocation(["Victoria, BC"]).fit;
+    const toronto = classifyLocation(["Toronto, ON, Canada"]).fit;
+    expect(effectiveLocationRank(bc, false)).toBeLessThan(effectiveLocationRank(toronto, false));
+  });
+});
+
+describe("Metro Vancouver coverage", () => {
+  it("includes the municipalities that were previously missing", () => {
+    for (const loc of ["Maple Ridge, BC", "Pitt Meadows, BC", "White Rock, BC"]) {
+      expect(classifyLocation([loc]).fit, loc).toBe(F.VANCOUVER);
+    }
+  });
+  it("still needs a BC signal for the ambiguous ones", () => {
+    expect(classifyLocation(["White Rock, NM"]).fit).toBe(F.US_ONSITE);
+  });
+  it("treats metro Vancouver as no relocation", () => {
+    expect(classifyLocation(["Maple Ridge, BC"]).relocation).toBe(false);
   });
 });

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { APP_STATUS } from "@/lib/enums";
+import { withAppliedDateDefault } from "@/lib/application-edit";
 import {
   cleanPrefill,
   interpretCreateResponse,
@@ -104,7 +105,10 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
         title: draft.title,
         url: draft.url.trim() || null,
         status: draft.status,
-        appliedDate: draft.appliedDate || null,
+        // Saving straight as APPLIED (or further) with no date stamps today.
+        appliedDate:
+          withAppliedDateDefault({ status: draft.status }, { appliedDate: draft.appliedDate })
+            .appliedDate || null,
         salary: draft.salary || null,
         notes: draft.notes || null,
         force,
@@ -161,7 +165,8 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
         <DialogHeader>
           <DialogTitle>Add a job to your tracker</DialogTitle>
           <DialogDescription>
-            Paste a job URL to prefill, or type it in. This is the main way to add jobs
+            Paste a job URL to prefill company, title and salary — or type it in. This is
+            the main way to add jobs
             you found on LinkedIn, referrals, or company sites.
           </DialogDescription>
         </DialogHeader>

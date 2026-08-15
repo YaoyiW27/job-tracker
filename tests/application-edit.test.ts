@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { toEditableRow, buildPatch, EDITABLE_FIELDS } from "@/lib/application-edit";
+import {
+  toEditableRow,
+  buildPatch,
+  EDITABLE_FIELDS,
+  todayYmd,
+  withAppliedDateDefault,
+} from "@/lib/application-edit";
 
 const base = {
   company: "Acme",
@@ -59,5 +65,60 @@ describe("buildPatch", () => {
   it("emits trimmed values", () => {
     const row = toEditableRow(base);
     expect(buildPatch(row, { ...row, title: "  Staff Engineer  " })).toEqual({ title: "Staff Engineer" });
+  });
+});
+
+describe("todayYmd", () => {
+  it("uses local calendar date, not UTC", () => {
+    // 2026-08-14 21:00 local — toISOString() would roll this to the 15th in any
+    // timezone west of UTC, stamping tomorrow's date on tonight's application.
+    const local = new Date(2026, 7, 14, 21, 0, 0);
+    expect(todayYmd(local)).toBe("2026-08-14");
+  });
+});
+
+describe("withAppliedDateDefault", () => {
+  const saved = toEditableRow({ ...base, status: "SAVED", appliedDate: null });
+  const TODAY = "2026-08-14";
+
+  it("stamps today when a saved row moves to APPLIED", () => {
+    const patch = withAppliedDateDefault({ status: "APPLIED" }, saved, TODAY);
+    expect(patch).toEqual({ status: "APPLIED", appliedDate: TODAY });
+  });
+
+  it("stamps for any status past SAVED — dragging straight to INTERVIEW still counts as applied", () => {
+    for (const status of ["OA", "INTERVIEW", "OFFER", "REJECTED", "GHOSTED"]) {
+      expect(withAppliedDateDefault({ status }, saved, TODAY).appliedDate).toBe(TODAY);
+    }
+  });
+
+  it("never overwrites a date the user already set", () => {
+    const withDate = toEditableRow({ ...base, status: "SAVED", appliedDate: "2026-07-01T00:00:00.000Z" });
+    expect(withAppliedDateDefault({ status: "APPLIED" }, withDate, TODAY).appliedDate).toBeUndefined();
+  });
+
+  it("respects a date being set in the same edit", () => {
+    const patch = withAppliedDateDefault(
+      { status: "APPLIED", appliedDate: "2026-08-01" },
+      saved,
+      TODAY,
+    );
+    expect(patch.appliedDate).toBe("2026-08-01");
+  });
+
+  it("does not stamp when the row moves back to SAVED", () => {
+    expect(withAppliedDateDefault({ status: "SAVED" }, saved, TODAY).appliedDate).toBeUndefined();
+  });
+
+  it("leaves patches that don't touch status alone", () => {
+    expect(withAppliedDateDefault({ notes: "ping recruiter" }, saved, TODAY)).toEqual({
+      notes: "ping recruiter",
+    });
+  });
+
+  it("does not mutate the patch it was given", () => {
+    const patch = { status: "APPLIED" };
+    withAppliedDateDefault(patch, saved, TODAY);
+    expect(patch).toEqual({ status: "APPLIED" });
   });
 });
