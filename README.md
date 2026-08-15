@@ -117,10 +117,29 @@ with no API key the app runs normally, jobs just have no score.
    npm run score -- --all          # no cap
    ```
 
-Scores appear in Discover's **Fit** column (reason on hover). If you keep résumés
-at `.private/resume-infra.tex` and `.private/resume-mlinfra.tex` plus
-`.private/preferences.md`, the scorer also recommends which résumé version fits
-each job better. The `.private/` folder is gitignored and never committed.
+Scores appear in Discover's **Fit** column (reason on hover). The scorer also
+picks which résumé to send: every `.tex` in `.private/` is a variant, its id is
+the filename's last underscore-separated segment, and its human label comes from
+a `% variant: ...` comment at the top of the file — so adding a résumé needs no
+code change. `.private/preferences.md` supplies the criteria. That folder is
+gitignored and never committed.
+
+### Scorer context on a deployment
+
+`/match` (paste a posting → which résumé to send) runs the scorer **server-side**,
+but a deployment has no `.private/` — it is gitignored, so it is not in the build.
+`loadScoreContext` therefore falls back to base64 env vars when the directory is
+absent:
+
+| Env var | Value |
+|---|---|
+| `SCORER_PREFERENCES_B64` | `base64 -i .private/preferences.md \| tr -d '\n'` |
+| `SCORER_RESUME_<ID>_B64` | one per résumé; `<ID>` becomes the variant id, so match the filename's case |
+
+Disk always wins locally, so editing a résumé takes effect immediately without
+touching env vars — but the deployment keeps serving the old copy until those
+vars are updated. With neither source present the endpoint answers `503` with a
+reason rather than failing opaquely.
 
 ## Scripts
 
