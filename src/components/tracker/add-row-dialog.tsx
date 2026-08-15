@@ -33,10 +33,17 @@ const emptyDraft = {
   appliedDate: "",
   location: "",
   salary: "",
+  resumeVersion: "",
   notes: "",
 };
 
-export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => void }) {
+export function AddRowDialog({
+  onCreated,
+  resumes,
+}: {
+  onCreated: (app: Application) => void;
+  resumes: { id: string; label: string }[];
+}) {
   const [open, setOpen] = React.useState(false);
   const [draft, setDraft] = React.useState({ ...emptyDraft });
   const [errors, setErrors] = React.useState<{ company?: string; title?: string }>({});
@@ -129,6 +136,7 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
         appliedDate: appliedDateForNewRow(draft.status, draft.appliedDate),
         location: draft.location || null,
         salary: draft.salary || null,
+        resumeVersion: draft.resumeVersion || null,
         notes: draft.notes || null,
         force,
       }),
@@ -294,6 +302,25 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
               onChange={(e) => set("location", e.target.value)}
             />
           </div>
+
+          {resumes.length > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="resume">Résumé sent (optional)</Label>
+              <select
+                id="resume"
+                value={draft.resumeVersion}
+                onChange={(e) => set("resumeVersion", e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+              >
+                <option value="">—</option>
+                {resumes.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.id} — {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="salary">Salary (optional)</Label>

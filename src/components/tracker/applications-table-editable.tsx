@@ -25,6 +25,7 @@ const STATUSES = Object.values(APP_STATUS);
 
 type Props = {
   rows: Application[];
+  resumes: { id: string; label: string }[];
   onPatched: (app: Application) => void;
   onDeleted: (id: string) => void;
 };
@@ -77,6 +78,7 @@ function GrowingCell({
 
 /** The live handlers, handed to cells through the table rather than a closure. */
 interface EditorMeta {
+  resumes: { id: string; label: string }[];
   getDraft: (row: Application) => EditableRow;
   editField: (row: Application, field: EditableField, value: string) => void;
   commit: (row: Application) => void;
@@ -112,7 +114,7 @@ function textCell(
   );
 }
 
-export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props) {
+export function ApplicationsTableEditable({ rows, resumes, onPatched, onDeleted }: Props) {
   const [drafts, setDrafts] = React.useState<Record<string, EditableRow>>({});
   // Default to the pipeline, not to whatever the server returned. The server
   // orders by applied date; clicking any header switches to that column.
@@ -179,7 +181,19 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
       // size that a table-fixed percentage was clipping.
       ch.accessor("title", {
         header: "Title",
-        cell: ({ row, table }) => textCell(table, row.original, "title"),
+        // Hovering the title says which résumé went out — the thing you want to
+        // know when a recruiter calls back and you have to remember what they read.
+        cell: ({ row, table }) => (
+          <div
+            title={
+              row.original.resumeVersion
+                ? `Résumé sent: ${row.original.resumeVersion}`
+                : "No résumé recorded"
+            }
+          >
+            {textCell(table, row.original, "title")}
+          </div>
+        ),
         meta: { className: "w-[22%] min-w-[10rem]" },
       }),
       ch.accessor("status", {
@@ -218,6 +232,31 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
         header: "Location",
         cell: ({ row, table }) => textCell(table, row.original, "location"),
         meta: { className: "w-[13%] min-w-[7rem]" },
+      }),
+      ch.accessor("resumeVersion", {
+        header: "Résumé",
+        meta: { className: "min-w-[6.5rem]" },
+        cell: ({ row, table }) => {
+          const m = table.options.meta as EditorMeta;
+          if (m.resumes.length === 0) return null;
+          return (
+            <select
+              value={m.getDraft(row.original).resumeVersion}
+              onChange={(e) => {
+                m.editField(row.original, "resumeVersion", e.target.value);
+                setTimeout(() => m.commit(row.original), 0);
+              }}
+              className={inputCls}
+            >
+              <option value="">—</option>
+              {m.resumes.map((r) => (
+                <option key={r.id} value={r.id} title={r.label}>
+                  {r.id}
+                </option>
+              ))}
+            </select>
+          );
+        },
       }),
       ch.accessor("salary", {
         header: "Salary",
@@ -284,7 +323,7 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    meta: { getDraft, editField, commit, remove } satisfies EditorMeta,
+    meta: { resumes, getDraft, editField, commit, remove } satisfies EditorMeta,
   });
 
   if (rows.length === 0) {
