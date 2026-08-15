@@ -1,7 +1,9 @@
 # Job Tracker
 
-A local-first personal web app for a new-grad / early-career software job search.
-It does two things:
+A personal web app for a new-grad / early-career software job search. It runs
+locally and deploys to a fixed URL; both read one hosted Postgres, so anything
+ingested or scored from a laptop shows up on the site immediately. It does two
+things:
 
 - **Track (the core)** — a Notion-style, inline-editable table + Kanban board + a
   dashboard for everything you're applying to and where each application stands.
@@ -16,9 +18,10 @@ It is **not** an auto-apply or form-autofill tool.
 
 ## Stack
 
-Next.js (App Router) + TypeScript · Tailwind CSS v4 · SQLite via Prisma ·
-TanStack Table · Recharts · Vitest. One runtime, one `npm run dev`. No accounts,
-no external database.
+Next.js (App Router) + TypeScript · Tailwind CSS v4 · PostgreSQL via Prisma
+(hosted on [Neon](https://neon.tech)) · TanStack Table · Recharts · Vitest.
+Deployed on Vercel; refreshed nightly by GitHub Actions. One runtime, one
+`npm run dev`. No account system — the deployment is gated by a single password.
 
 ## Requirements
 
@@ -115,6 +118,7 @@ each job better. The `.private/` folder is gitignored and never committed.
 | `npm run score` | Optional AI fit scoring (`-- --limit N` / `-- --all`) |
 | `npm test` | Run the Vitest suite |
 | `npm run check:location` | Cross-check location tagging vs the reference Python |
+| `npm run db:push` | Sync the schema to the database (creates the tables) |
 | `npm run db:migrate` / `db:studio` | Prisma migrate / open Prisma Studio |
 
 ## Data sources
@@ -128,7 +132,8 @@ Adding a new source is a drop-in behind the ingest seam (`src/ingest/sources/`).
 ## Project layout
 
 ```
-prisma/schema.prisma        Job + Application models (SQLite)
+prisma/schema.prisma        Job + Application models (PostgreSQL)
+.github/workflows/daily.yml nightly ingest + incremental scoring
 scripts/                    ingest.ts, score.ts, check_location.ts
 src/app/                    pages (tracker, discover, dashboard) + API routes
 src/components/             UI (tracker table + kanban, discover table, charts)
@@ -137,9 +142,14 @@ src/ingest/                 pluggable fetch → tag → upsert pipeline
 tests/                      Vitest suites for the pure logic
 ```
 
-## Deploy to a fixed URL (Vercel + Neon)
+## Deployment
 
-The app uses PostgreSQL; local scripts and the deployment share one Neon database.
+Live at **https://yaoyi-job-tracker.vercel.app** — password-gated, so a browser
+prompt appears before anything loads. Vercel redeploys on every push to `main`.
+
+### Setting it up from scratch (Vercel + Neon)
+
+Local scripts and the deployment share one Neon database.
 
 1. **Create a free Postgres** at [neon.tech](https://neon.tech). Copy both
    connection strings: the **pooled** URL (host contains `-pooler`) → `DATABASE_URL`,
@@ -158,11 +168,54 @@ The app uses PostgreSQL; local scripts and the deployment share one Neon databas
    your `APP_PASSWORD`).
 
 Access is protected by HTTP Basic auth (`src/middleware.ts`) whenever
-`APP_PASSWORD` is set; unset locally, the app stays open.
+`APP_PASSWORD` is set; unset locally, the app stays open. Pages *and* API routes
+are gated — only static assets and the app icons are served unauthenticated, so
+browsers can still fetch the favicon.
+
+## Automation (GitHub Actions)
+
+`.github/workflows/daily.yml` keeps the database fresh without the laptop being
+on. It runs at **14:00 UTC daily** (07:00 Vancouver) and writes straight to Neon —
+no redeploy needed, since the site reads the same database.
+
+| Job | What it does |
+|---|---|
+| `ingest` | Pulls the public feeds and upserts them. Always runs. |
+| `score` | Fit-scores only jobs with `fitScore = null` (incremental by design), capped at 40 per run so a backlog doesn't arrive as one large bill. |
+
+Manual run — useful after changing scoring criteria, or to work through a backlog:
+
+```bash
+gh workflow run daily.yml -f score_limit=40     # ingest + score
+gh workflow run daily.yml -f run_score=false    # ingest only
+```
+
+### Required repository secrets
+
+Set once with `gh secret set <NAME> --repo <owner>/<repo>`, reading from a file
+so values never land in shell history:
+
+| Secret | Value |
+|---|---|
+| `DATABASE_URL` / `DIRECT_URL` | The same two Neon strings as `.env` |
+| `ANTHROPIC_API_KEY` | Only needed for the `score` job |
+| `PRIVATE_PREFERENCES_B64` | `base64 -i .private/preferences.md \| tr -d '\n'` |
+| `PRIVATE_RESUME_INFRA_B64` | `base64 -i .private/resume-infra.tex \| tr -d '\n'` |
+| `PRIVATE_RESUME_MLINFRA_B64` | `base64 -i .private/resume-mlinfra.tex \| tr -d '\n'` |
+
+The scorer reads `.private/`, which is gitignored and never committed — so the
+workflow reconstructs those three files from secrets for the length of the run
+and prints only their byte sizes. Optional repo *variable* `ANTHROPIC_MODEL`
+overrides the model (defaults to `claude-sonnet-5` in CI).
+
+Re-run these `base64` commands and re-set the secret whenever a résumé changes;
+CI has no other way to see the edit.
 
 ## Notes
 
 - Single user; the site is gated by `APP_PASSWORD`, not a full account system.
 - Re-run `npm run ingest` anytime to refresh the feed; it dedupes on URL and
-  preserves your applications and fit scores. `npm run ingest`/`score` run
-  locally and write to the same database the site reads.
+  preserves your applications and fit scores. Local runs and the nightly Actions
+  run write to the same database the site reads, so either one is enough.
+- `npm run score` re-scores nothing: it only looks at jobs whose `fitScore` is
+  still null. To re-score after changing the criteria, clear those scores first.
