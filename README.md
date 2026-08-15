@@ -176,6 +176,30 @@ deployment. Any push to `main` does it.
 Symptom of a stale copy: the résumé recommendation cites a project you removed,
 or `/match` and a local `npm run score` disagree about the same posting.
 
+## Drafting form answers
+
+`/match` also drafts the short-answer question those forms ask ("Why are you
+interested in working for X?"). It is a separate button from scoring, because
+the answer only matters once the score has convinced you to apply.
+
+The skeleton is fixed — for similar roles the answers should read similarly —
+and only the company-specific sentence changes. Two rules make that safe:
+
+- **Company claims must come from the posting.** Culture paragraphs are used by
+  pairing a stated value with résumé evidence that you have done that thing,
+  never by echoing the value back. No evidence, no culture sentence.
+- **Experience claims must come from the résumé** — the same variant the scorer
+  picked, so the application and the answer tell one story.
+
+The response shows what it took from the posting and from the résumé, plus a
+**gaps** list: what the question asked for that nothing supports. Write those
+parts yourself.
+
+Voice comes from `.private/answer-style.md` (optional; a terse default applies
+without it). On a deployment, supply it as `SCORER_ANSWER_STYLE_B64` alongside
+the other scorer secrets. `ANSWER_MODEL` overrides the model (default
+`claude-sonnet-5` — this is writing, not extraction).
+
 ## Scripts
 
 | Command | What it does |

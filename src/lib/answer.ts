@@ -164,7 +164,9 @@ export async function draftAnswer(
 
   const params: Anthropic.MessageCreateParamsNonStreaming = {
     model: process.env.ANSWER_MODEL?.trim() || DEFAULT_MODEL,
-    max_tokens: 1024,
+    // Generous: the model emits a thinking block before the JSON, and a budget
+    // that only fits the answer truncates the JSON into a parse failure.
+    max_tokens: 4096,
     system,
     output_config: {
       format: { type: "json_schema", schema: ANSWER_SCHEMA as unknown as Record<string, unknown> },
