@@ -14,6 +14,9 @@ export function Nav() {
         <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
           Dashboard
         </Link>
+        <Link href="/match" className="text-sm text-muted-foreground hover:text-foreground">
+          Which resume?
+        </Link>
       </nav>
     </header>
   );
