@@ -21,8 +21,10 @@ function resumeOptions(): { id: string; label: string }[] {
 export default async function TrackerPage() {
   const apps = await listApplications();
 
+  // Same width as Discover: the tracker has more columns, and max-w-5xl forced
+  // a horizontal scrollbar you had to drag just to reach Delete.
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-6 py-10">
       <TrackerClient initial={apps} resumes={resumeOptions()} />
     </main>
   );

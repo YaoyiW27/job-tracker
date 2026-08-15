@@ -33,6 +33,12 @@ type Props = {
 const inputCls =
   "w-full rounded border border-transparent bg-transparent px-2 py-1 text-sm hover:border-input focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring";
 
+function fit(el: HTMLTextAreaElement | null): void {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 /**
  * Editable cell that grows to fit its contents instead of clipping them — a
  * long title or salary range used to be readable only by clicking into the cell
@@ -49,19 +55,31 @@ function GrowingCell({
 }) {
   const ref = React.useRef<HTMLTextAreaElement>(null);
 
-  // Resize on every value change, including the ones that arrive from a
-  // server round-trip rather than typing.
+  // Height follows content — on every value change, including ones arriving
+  // from a server round-trip rather than typing.
   React.useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    fit(ref.current);
   }, [value]);
+
+  // ...and on every width change. The column width is decided by the table's
+  // auto layout after first paint, so a height measured once on mount wraps
+  // against the wrong width and clips the text to one line.
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => fit(el));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <textarea
       ref={ref}
       rows={1}
+      // A textarea's default cols=20 gives it a ~184px intrinsic width that
+      // w-full cannot shrink below, so five text columns forced the table wider
+      // than the page. cols=1 lets the column widths actually apply.
+      cols={1}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onCommit}
@@ -71,7 +89,7 @@ function GrowingCell({
           (e.target as HTMLTextAreaElement).blur();
         }
       }}
-      className={`${inputCls} resize-none overflow-hidden leading-snug`}
+      className={`${inputCls} min-w-0 resize-none overflow-hidden leading-snug`}
     />
   );
 }
@@ -123,6 +141,13 @@ export function ApplicationsTableEditable({ rows, resumes, onPatched, onDeleted 
   ]);
   const [savingId, setSavingId] = React.useState<string | null>(null);
 
+  // commit() must never read a stale copy: the status and résumé selects fire
+  // it from a setTimeout, by which point the closure captured at click time no
+  // longer holds the value that was just picked, so the diff came out empty and
+  // nothing was saved.
+  const draftsRef = React.useRef(drafts);
+  draftsRef.current = drafts;
+
   const getDraft = React.useCallback(
     (row: Application): EditableRow => drafts[row.id] ?? toEditableRow(row),
     [drafts],
@@ -137,7 +162,7 @@ export function ApplicationsTableEditable({ rows, resumes, onPatched, onDeleted 
 
   const commit = React.useCallback(
     async (row: Application) => {
-      const draft = drafts[row.id] ?? toEditableRow(row);
+      const draft = draftsRef.current[row.id] ?? toEditableRow(row);
       const original = toEditableRow(row);
       const patch = withAppliedDateDefault(buildPatch(original, draft), original);
       if (Object.keys(patch).length === 0) return;
@@ -160,7 +185,7 @@ export function ApplicationsTableEditable({ rows, resumes, onPatched, onDeleted 
         setSavingId(null);
       }
     },
-    [drafts, onPatched],
+    [onPatched],
   );
 
   const remove = async (row: Application) => {
