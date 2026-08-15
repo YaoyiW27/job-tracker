@@ -69,10 +69,17 @@ optional.
 ## The three pages
 
 ### Tracker (`/tracker`) — the core
-- **+ Add row** — the main entry point. Paste a job URL and click **Prefill**:
-  it does a single fetch of that page and fills in company + title (from JSON-LD /
-  OpenGraph / `<title>`), which you edit and save. Or just type it in. Warns on
-  duplicates.
+- **+ Add row** — the main entry point, with two ways to avoid retyping:
+  - **Prefill** — paste a job URL; one fetch of that page fills company, title and
+    salary from JSON-LD / OpenGraph / `<title>`. Free, and it works on ATS hosts
+    (Greenhouse, Lever, Ashby, Workable) that publish structured data.
+  - **Extract from text** — paste the posting itself. IBM, LinkedIn and Workday
+    answer a server-side fetch with a bot-check page rather than the posting, so
+    no parser can help; a small model call reads the same three fields out of the
+    text you already have on screen. Needs `ANTHROPIC_API_KEY`; the pasted text
+    is not stored.
+
+  Either way you edit before saving, and duplicates are flagged.
 - **Table view** — inline-edit status, notes, applied date, salary, etc.; sortable
   columns.
 - **Board view** — Kanban grouped by status; drag a card to change its status.
@@ -110,6 +117,10 @@ with no API key the app runs normally, jobs just have no score.
    ANTHROPIC_API_KEY=sk-ant-...
    # optional model override (default claude-opus-5)
    ANTHROPIC_MODEL=claude-haiku-4-5
+   # optional — model for "Extract from text" in Add row. Separate from the
+   # scorer on purpose: that is judgement, this is field extraction, so it
+   # defaults to Haiku regardless of ANTHROPIC_MODEL.
+   PREFILL_MODEL=claude-haiku-4-5-20251001
    ```
 2. Score jobs:
    ```bash

@@ -41,6 +41,8 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
   const [errors, setErrors] = React.useState<{ company?: string; title?: string }>({});
   const [prefilling, setPrefilling] = React.useState(false);
   const [prefillNote, setPrefillNote] = React.useState<string | null>(null);
+  // Kept out of `draft`: it is input to prefill, never saved on the application.
+  const [pasted, setPasted] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [duplicate, setDuplicate] = React.useState<DuplicateMatch | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -53,6 +55,7 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
     setDraft({ ...emptyDraft });
     setErrors({});
     setPrefillNote(null);
+    setPasted("");
     setDuplicate(null);
     setMessage(null);
   }
@@ -62,19 +65,26 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
     if (!next) reset();
   }
 
-  async function handlePrefill() {
-    if (!draft.url.trim()) return;
+  async function handlePrefill(source: "url" | "text") {
+    const payload =
+      source === "text" ? { text: pasted.trim() } : { url: draft.url.trim() };
+    if (!Object.values(payload)[0]) return;
+
     setPrefilling(true);
     setPrefillNote(null);
     try {
       const res = await fetch("/api/prefill", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: draft.url.trim() }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.error) {
-        setPrefillNote(`Couldn't read that page (${data.error}). Fill it in manually.`);
+        setPrefillNote(
+          source === "text"
+            ? `Couldn't read that posting (${data.error}). Fill it in manually.`
+            : `Couldn't read that page (${data.error}). Paste the posting below instead, or fill it in manually.`,
+        );
         return;
       }
       const cleaned = cleanPrefill({ company: data.company, title: data.title, salary: data.salary });
@@ -87,7 +97,9 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
       setPrefillNote(
         cleaned.company || cleaned.title
           ? `Prefilled from ${data.via?.join(", ") || "page"}. Check and edit before saving.`
-          : "No company/title found on that page — fill it in manually.",
+          : source === "text"
+            ? "Nothing recognizable in that text — check you pasted the posting itself."
+            : "No company/title found on that page — paste the posting below instead.",
       );
     } catch {
       setPrefillNote("Prefill request failed. Fill it in manually.");
@@ -165,9 +177,8 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
         <DialogHeader>
           <DialogTitle>Add a job to your tracker</DialogTitle>
           <DialogDescription>
-            Paste a job URL to prefill company, title and salary — or type it in. This is
-            the main way to add jobs
-            you found on LinkedIn, referrals, or company sites.
+            Paste a job URL to prefill company, title and salary. If the site blocks that
+            (IBM, LinkedIn, Workday), paste the posting text instead. Or just type it in.
           </DialogDescription>
         </DialogHeader>
 
@@ -184,13 +195,39 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
               <Button
                 type="button"
                 variant="outline"
-                onClick={handlePrefill}
+                onClick={() => handlePrefill("url")}
                 disabled={prefilling || !draft.url.trim()}
               >
                 {prefilling ? "Reading…" : "Prefill"}
               </Button>
             </div>
             {prefillNote && <p className="text-xs text-muted-foreground">{prefillNote}</p>}
+          </div>
+
+          {/* The escape hatch for IBM / LinkedIn / Workday, which answer a
+              server-side fetch with a bot check rather than the posting. */}
+          <div className="space-y-1.5">
+            <Label htmlFor="pasted">Or paste the posting (optional)</Label>
+            <Textarea
+              id="pasted"
+              rows={4}
+              placeholder="Paste the job description here if the URL above can't be read…"
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handlePrefill("text")}
+                disabled={prefilling || !pasted.trim()}
+              >
+                {prefilling ? "Reading…" : "Extract from text"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Works when the site blocks fetching. The text isn&apos;t saved.
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
