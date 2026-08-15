@@ -130,22 +130,26 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
         enableSorting: false,
         cell: ({ row }) => textCell(row.original, "notes"),
       }),
+      // Editable, not just a link: a row added from pasted text has no URL yet,
+      // and there was previously no way to add one after the fact.
       ch.display({
         id: "url",
         header: "Link",
-        cell: ({ row }) =>
-          row.original.url ? (
-            <a
-              href={row.original.url}
-              target="_blank"
-              rel="noreferrer"
-              className="px-2 text-blue-600 hover:underline dark:text-blue-400"
-            >
-              open
-            </a>
-          ) : (
-            <span className="px-2 text-muted-foreground">—</span>
-          ),
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
+            {textCell(row.original, "url", "url")}
+            {row.original.url && (
+              <a
+                href={row.original.url}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 pr-2 text-blue-600 hover:underline dark:text-blue-400"
+              >
+                open
+              </a>
+            )}
+          </div>
+        ),
       }),
       ch.display({
         id: "actions",

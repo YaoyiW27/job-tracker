@@ -79,6 +79,22 @@ export function withAppliedDateDefault(
 }
 
 /**
+ * Applied date for a row being *created*. Same rule as withAppliedDateDefault,
+ * but it answers with the value to store rather than a patch — the create path
+ * has no "original" to diff against, and reading an absent patch field there
+ * silently threw away the date the user had typed.
+ */
+export function appliedDateForNewRow(
+  status: string,
+  appliedDate: string,
+  today: string = todayYmd(),
+): string | null {
+  const typed = appliedDate.trim();
+  if (typed) return typed;
+  return status && status !== "SAVED" ? today : null;
+}
+
+/**
  * Diff an edited row against the original, returning only changed fields with
  * trimmed values. Whitespace-only changes are ignored.
  */

@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { APP_STATUS } from "@/lib/enums";
-import { withAppliedDateDefault } from "@/lib/application-edit";
+import { appliedDateForNewRow } from "@/lib/application-edit";
 import {
   cleanPrefill,
   interpretCreateResponse,
@@ -117,10 +117,9 @@ export function AddRowDialog({ onCreated }: { onCreated: (app: Application) => v
         title: draft.title,
         url: draft.url.trim() || null,
         status: draft.status,
-        // Saving straight as APPLIED (or further) with no date stamps today.
-        appliedDate:
-          withAppliedDateDefault({ status: draft.status }, { appliedDate: draft.appliedDate })
-            .appliedDate || null,
+        // Your date if you typed one; otherwise today when saving straight as
+        // APPLIED or further.
+        appliedDate: appliedDateForNewRow(draft.status, draft.appliedDate),
         salary: draft.salary || null,
         notes: draft.notes || null,
         force,

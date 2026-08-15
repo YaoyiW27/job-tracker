@@ -5,6 +5,7 @@ import {
   EDITABLE_FIELDS,
   todayYmd,
   withAppliedDateDefault,
+  appliedDateForNewRow,
 } from "@/lib/application-edit";
 
 const base = {
@@ -120,5 +121,34 @@ describe("withAppliedDateDefault", () => {
     const patch = { status: "APPLIED" };
     withAppliedDateDefault(patch, saved, TODAY);
     expect(patch).toEqual({ status: "APPLIED" });
+  });
+});
+
+describe("appliedDateForNewRow", () => {
+  const TODAY = "2026-08-15";
+
+  it("keeps the date the user typed in the dialog", () => {
+    // Regression: the create path reused the *patch* helper, which correctly
+    // returns nothing when a date is already set — and the caller then read an
+    // undefined field, silently discarding what the user had typed.
+    expect(appliedDateForNewRow("APPLIED", "2026-08-10", TODAY)).toBe("2026-08-10");
+  });
+
+  it("stamps today when saving straight as APPLIED with no date", () => {
+    expect(appliedDateForNewRow("APPLIED", "", TODAY)).toBe(TODAY);
+  });
+
+  it("stamps for any status past SAVED", () => {
+    for (const s of ["OA", "INTERVIEW", "OFFER", "REJECTED", "GHOSTED"]) {
+      expect(appliedDateForNewRow(s, "", TODAY), s).toBe(TODAY);
+    }
+  });
+
+  it("leaves a plain SAVED row undated", () => {
+    expect(appliedDateForNewRow("SAVED", "", TODAY)).toBeNull();
+  });
+
+  it("still honours a date on a SAVED row — applied earlier, tracked later", () => {
+    expect(appliedDateForNewRow("SAVED", "2026-07-01", TODAY)).toBe("2026-07-01");
   });
 });
