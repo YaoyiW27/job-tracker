@@ -22,6 +22,15 @@ const CASES: Array<[string, string[], LocationFit, boolean, boolean?]> = [
   ["London UK", ["London, UK"], F.OTHER, true],
   ["Berlin", ["Berlin, Germany"], F.OTHER, true],
   ["empty", [], F.OTHER, true],
+  // Ambiguous city names — must disambiguate by state/province/country.
+  ["Richmond VA is US, not Vancouver", ["Richmond, VA"], F.US_ONSITE, true, true],
+  ["Richmond BC is Vancouver", ["Richmond, BC"], F.VANCOUVER, false],
+  ["Vancouver WA is US", ["Vancouver, WA"], F.US_ONSITE, true, true],
+  ["Surrey BC is Vancouver", ["Surrey, BC"], F.VANCOUVER, false],
+  ["Surrey UK is other", ["Surrey, UK"], F.OTHER, true, true],
+  ["London ON is Canada", ["London, ON"], F.CANADA_OTHER, true],
+  ["Canada wins over US in multi-region", ["Toronto, ON", "Austin, TX"], F.CANADA_OTHER, true],
+  ["bare Vancouver assumed BC", ["Vancouver"], F.VANCOUVER, false],
 ];
 
 describe("classifyLocation", () => {

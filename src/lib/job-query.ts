@@ -11,9 +11,12 @@ export interface JobQuery {
   minFitScore: number | null;
   activeOnly: boolean;
   inScopeOnly: boolean;
+  sort: JobSort;
   page: number;
   pageSize: number;
 }
+
+export type JobSort = "fit" | "newest";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
@@ -58,6 +61,7 @@ export function parseJobQuery(params: URLSearchParams): JobQuery {
     minFitScore,
     activeOnly,
     inScopeOnly: isTruthyFlag(params.get("inScope")),
+    sort: params.get("sort") === "newest" ? "newest" : "fit",
     page: clampInt(params.get("page"), 1, Number.MAX_SAFE_INTEGER, 1),
     pageSize: clampInt(params.get("pageSize"), 1, MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE),
   };
@@ -78,9 +82,12 @@ export function buildJobWhere(query: JobQuery): Record<string, unknown> {
   return where;
 }
 
-// Ranked ordering: location bucket first (top-tier bump already baked into
-// locationRank at ingest), then fit score, then most recently posted. On SQLite
-// NULLs sort low, so fitScore desc naturally puts scored jobs above unscored.
-export function buildJobOrderBy() {
-  return [{ locationRank: "asc" }, { fitScore: "desc" }, { datePosted: "desc" }];
+// Two orderings, freshness kept separate from fit:
+//  - "fit": location bucket (top-tier bump baked into locationRank at ingest),
+//    then fitScore (NULLs sort low on SQLite, so scored jobs lead), then recency.
+//  - "newest": most recently posted first, then location bucket as a tiebreak.
+export function buildJobOrderBy(sort: JobSort = "fit") {
+  return sort === "newest"
+    ? [{ datePosted: "desc" }, { locationRank: "asc" }]
+    : [{ locationRank: "asc" }, { fitScore: "desc" }, { datePosted: "desc" }];
 }

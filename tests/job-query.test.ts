@@ -15,9 +15,16 @@ describe("parseJobQuery", () => {
       minFitScore: null,
       activeOnly: true,
       inScopeOnly: false,
+      sort: "fit",
       page: 1,
       pageSize: 50,
     });
+  });
+
+  it("parses the sort mode (default fit, else newest)", () => {
+    expect(q("").sort).toBe("fit");
+    expect(q("sort=newest").sort).toBe("newest");
+    expect(q("sort=bogus").sort).toBe("fit");
   });
 
   it("reads and validates a known bucket + role", () => {
@@ -88,11 +95,20 @@ describe("buildJobWhere", () => {
 });
 
 describe("buildJobOrderBy", () => {
-  it("ranks by locationRank, then fitScore, then recency", () => {
-    expect(buildJobOrderBy()).toEqual([
+  it("by fit: locationRank, then fitScore, then recency", () => {
+    expect(buildJobOrderBy("fit")).toEqual([
       { locationRank: "asc" },
       { fitScore: "desc" },
       { datePosted: "desc" },
+    ]);
+  });
+  it("defaults to fit", () => {
+    expect(buildJobOrderBy()).toEqual(buildJobOrderBy("fit"));
+  });
+  it("by newest: datePosted first, then locationRank", () => {
+    expect(buildJobOrderBy("newest")).toEqual([
+      { datePosted: "desc" },
+      { locationRank: "asc" },
     ]);
   });
 });

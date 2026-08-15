@@ -22,6 +22,13 @@ export interface ScoreContext {
   model: string;
 }
 
+/** Minimal client surface scoreJob needs — lets tests inject a stub. */
+export interface ScoreClient {
+  messages: {
+    create(params: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message>;
+  };
+}
+
 /**
  * Load the scorer's context from .private/ (never committed). Resumes are LaTeX
  * → plain text. Model is overridable via ANTHROPIC_MODEL for cost control.
@@ -43,20 +50,33 @@ export function loadScoreContext(privateDir = join(process.cwd(), ".private")): 
  * on refusal or an unparseable response so the caller can skip that job. Assumes
  * an API key is configured (guard with isScoringEnabled first).
  */
-export async function scoreJob(job: JobMeta, ctx: ScoreContext): Promise<ScoreResult | null> {
-  const client = new Anthropic(); // resolves ANTHROPIC_API_KEY / profile from env
+export async function scoreJob(
+  job: JobMeta,
+  ctx: ScoreContext,
+  client: ScoreClient = new Anthropic(), // resolves ANTHROPIC_API_KEY / profile from env
+): Promise<ScoreResult | null> {
   const { system, user } = buildScoreMessages(job, ctx.preferences, ctx.resumeA, ctx.resumeB);
 
-  // output_config (structured outputs) may lag the installed SDK's static types.
-  const params = {
+  // No `effort` — it's optional and rejected by models like Haiku 4.5.
+  const params: Anthropic.MessageCreateParamsNonStreaming = {
     model: ctx.model,
     max_tokens: 1024,
     system,
-    output_config: { format: { type: "json_schema", schema: SCORE_SCHEMA }, effort: "low" },
+    output_config: {
+      format: { type: "json_schema", schema: SCORE_SCHEMA as unknown as Record<string, unknown> },
+    },
     messages: [{ role: "user", content: user }],
-  } as unknown as Anthropic.MessageCreateParamsNonStreaming;
+  };
 
-  const res = await client.messages.create(params);
+  let res: Anthropic.Message;
+  try {
+    res = await client.messages.create(params);
+  } catch {
+    // API error (unsupported param, rate limit, transient failure) — skip this
+    // one job so the batch keeps going instead of failing across the board.
+    return null;
+  }
+
   if (res.stop_reason === "refusal") return null;
 
   const text = res.content.find((b): b is Anthropic.TextBlock => b.type === "text");

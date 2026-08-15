@@ -1,9 +1,10 @@
 import { LOCATION_FIT, type LocationFit } from "./enums";
 
-// Ported from scripts/find_jobs.py (reference only). The keyword sets are kept
-// IDENTICAL to the Python so bucketing stays faithful; the classification
-// ORDER follows SPEC.md where it diverges — see the US_REMOTE / US_ONSITE
-// split in classifyLocation(), which find_jobs.py does not make.
+// Location bucketing. Ported from scripts/find_jobs.py but corrected for the
+// ambiguous-city bug: bare metro-Vancouver names (Richmond, Surrey, even
+// Vancouver itself) also name US/UK cities, so we require a BC/Canada context
+// and detect US state codes with word boundaries. SPEC.md governs where this
+// diverges from the reference Python.
 
 // Top-tier companies: worth relocating for, so they get a rank bump (scoring.ts).
 export const TOP_TIER = new Set<string>([
@@ -12,12 +13,17 @@ export const TOP_TIER = new Set<string>([
   "databricks", "snowflake", "uber", "airbnb", "coinbase", "figma",
 ]);
 
-// Vancouver metro (hit → highest priority).
-export const VANCOUVER_KEYS = [
-  "vancouver", "burnaby", "richmond", "surrey", "coquitlam",
-  "north vancouver", "west vancouver", "new westminster",
-  "british columbia", ", bc", " bc,", " bc ",
+// Distinctively metro-Vancouver names (Vancouver WA is the one exception, caught
+// by the US check). Safe to bucket as Vancouver even without a BC signal.
+const VAN_STRONG = [
+  "vancouver", "burnaby", "coquitlam", "new westminster",
+  "north vancouver", "west vancouver", "port coquitlam", "port moody",
 ];
+// Metro-Vancouver names that ALSO name US/UK cities — only Vancouver with a BC
+// signal, never on their own.
+const VAN_AMBIGUOUS = ["richmond", "surrey", "delta", "langley"];
+
+const BC_KEYS = ["british columbia", ", bc", " bc,", " bc ", " b.c."];
 
 // Canada signals: province names/abbreviations + "canada" + major cities.
 export const CANADA_KEYS = [
@@ -28,10 +34,18 @@ export const CANADA_KEYS = [
   ", on", ", qc", ", ab", ", mb", ", sk", ", ns", ", nb", ", pe", ", nl", ", bc",
 ];
 
-// Crude US markers — identical set to find_jobs.py.
-export const US_KEYS = [
-  ", usa", "united states", ", ca", ", ny", ", wa", ", tx",
-  ", ma", ", il", ", wa,", "seattle", "san francisco",
+// US state postal codes (50 + DC), EXCLUDING Canadian province codes (no overlap).
+const US_STATE_CODES = [
+  "al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id",
+  "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms",
+  "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok",
+  "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv",
+  "wi", "wy", "dc",
+];
+// ", va" but NOT ", vancouver"; ", ca" but NOT ", canada" — word boundary after the code.
+const US_STATE_RE = new RegExp(`,\\s*(?:${US_STATE_CODES.join("|")})\\b`, "i");
+const US_CITY_KEYS = [
+  ", usa", "united states", "seattle", "san francisco",
   "new york", "bellevue", "kirkland", "sunnyvale",
 ];
 
@@ -52,37 +66,42 @@ export interface LocationClass {
 /**
  * Classify a list of location strings into a fit bucket.
  *
- * Order (best → worst): Vancouver → Canada (remote|other) → US (remote|onsite)
- * → generic remote → other. Mirrors find_jobs.classify_location() except for
- * the US split, which SPEC.md requires: a US *remote* role that can hire from
- * Canada is in-scope (US_REMOTE), while US *on-site* needs a visa (US_ONSITE).
- * Python lumped every remote posting without a Canada signal into
- * "remote_generic"; we route remote+US to US_REMOTE first.
+ * A metro-Vancouver name is only VANCOUVER with a BC signal, or when it's an
+ * unambiguous BC name with no US signal — so "Richmond, VA" / "Vancouver, WA"
+ * bucket as US, while "Richmond, BC" stays Vancouver. Explicit Canada beats US
+ * for multi-region posts. US split into remote/on-site per SPEC.md.
  */
 export function classifyLocation(locations: string[]): LocationClass {
   const joined = locations.join(" | ").toLowerCase();
   const isRemote = joined.includes("remote");
 
-  // 1. Vancouver metro — top priority (local).
-  if (has(joined, VANCOUVER_KEYS)) {
-    return { fit: LOCATION_FIT.VANCOUVER, relocation: false, isRemote };
-  }
-  // 2. Canada — remote first (no relocation), else relocate.
-  if (has(joined, CANADA_KEYS)) {
+  const hasBC = has(joined, BC_KEYS);
+  const hasUS = US_STATE_RE.test(joined) || has(joined, US_CITY_KEYS);
+  const hasCanada = hasBC || has(joined, CANADA_KEYS);
+  const vanStrong = has(joined, VAN_STRONG);
+  const vanCity = vanStrong || has(joined, VAN_AMBIGUOUS);
+
+  // 1. Vancouver metro — needs BC context, or an unambiguous metro name with no US signal.
+  if (vanCity && hasBC) return { fit: LOCATION_FIT.VANCOUVER, relocation: false, isRemote };
+  if (vanStrong && !hasUS) return { fit: LOCATION_FIT.VANCOUVER, relocation: false, isRemote };
+
+  // 2. Canada (explicit) — beats US for multi-region posts.
+  if (hasCanada) {
     return isRemote
       ? { fit: LOCATION_FIT.CANADA_REMOTE, relocation: false, isRemote }
       : { fit: LOCATION_FIT.CANADA_OTHER, relocation: true, isRemote };
   }
-  // 3. US — DEVIATION from find_jobs.py: split remote vs on-site.
-  if (has(joined, US_KEYS)) {
+
+  // 3. US — remote can hire from Canada; on-site needs a visa.
+  if (hasUS) {
     return isRemote
       ? { fit: LOCATION_FIT.US_REMOTE, relocation: false, isRemote }
       : { fit: LOCATION_FIT.US_ONSITE, relocation: true, isRemote };
   }
+
   // 4. Remote with no identified country — verify eligibility later.
-  if (isRemote) {
-    return { fit: LOCATION_FIT.REMOTE_GENERIC, relocation: false, isRemote };
-  }
+  if (isRemote) return { fit: LOCATION_FIT.REMOTE_GENERIC, relocation: false, isRemote };
+
   // 5. Everything else: non-remote, outside detected North America.
   return { fit: LOCATION_FIT.OTHER, relocation: true, isRemote };
 }

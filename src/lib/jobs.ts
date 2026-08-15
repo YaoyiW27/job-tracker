@@ -7,7 +7,7 @@ export async function listJobs(query: JobQuery) {
   const [jobs, total] = await Promise.all([
     db.job.findMany({
       where,
-      orderBy: buildJobOrderBy() as Prisma.JobOrderByWithRelationInput[],
+      orderBy: buildJobOrderBy(query.sort) as Prisma.JobOrderByWithRelationInput[],
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
     }),
