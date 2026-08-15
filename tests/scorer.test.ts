@@ -36,14 +36,17 @@ describe("buildScoreMessages", () => {
     locationFit: "VANCOUVER",
     salary: null,
   };
-  const msgs = buildScoreMessages(job, "PREFS: high AI acceptance", "RESUME_A_INFRA", "RESUME_B_MLINFRA");
+  const msgs = buildScoreMessages(job, "PREFS: high AI acceptance", [
+    { id: "AIops", label: "infra / platform", text: "RESUME_A_INFRA" },
+    { id: "AIinfra", label: "ML infra", text: "RESUME_B_MLINFRA" },
+  ]);
 
   it("scores 0-100, weights AI, and forbids unbacked skills in the system prompt", () => {
     expect(msgs.system).toMatch(/0\D*100|0-100|0–100/);
     expect(msgs.system).toContain("AI");
     expect(msgs.system.toLowerCase()).toContain("no evidence");
-    expect(msgs.system).toContain("Resume A");
-    expect(msgs.system).toContain("Resume B");
+    expect(msgs.system).toContain("AIops");
+    expect(msgs.system).toContain("AIinfra");
   });
 
   it("includes the job metadata, preferences, and both resumes in the user message", () => {
@@ -56,35 +59,37 @@ describe("buildScoreMessages", () => {
   });
 });
 
+const IDS = ["AIops", "AIinfra"];
+
 describe("normalizeScoreResult", () => {
   it("clamps and rounds the score", () => {
-    expect(normalizeScoreResult({ fitScore: 150 }).fitScore).toBe(100);
-    expect(normalizeScoreResult({ fitScore: -10 }).fitScore).toBe(0);
-    expect(normalizeScoreResult({ fitScore: 87.6 }).fitScore).toBe(88);
+    expect(normalizeScoreResult({ fitScore: 150 }, IDS).fitScore).toBe(100);
+    expect(normalizeScoreResult({ fitScore: -10 }, IDS).fitScore).toBe(0);
+    expect(normalizeScoreResult({ fitScore: 87.6 }, IDS).fitScore).toBe(88);
   });
   it("defaults an invalid score to 0", () => {
-    expect(normalizeScoreResult({ fitScore: "abc" }).fitScore).toBe(0);
-    expect(normalizeScoreResult({}).fitScore).toBe(0);
+    expect(normalizeScoreResult({ fitScore: "abc" }, IDS).fitScore).toBe(0);
+    expect(normalizeScoreResult({}, IDS).fitScore).toBe(0);
   });
-  it("validates betterResume to A | B | either", () => {
-    expect(normalizeScoreResult({ betterResume: "A" }).betterResume).toBe("A");
-    expect(normalizeScoreResult({ betterResume: "B" }).betterResume).toBe("B");
-    expect(normalizeScoreResult({ betterResume: "C" }).betterResume).toBe("either");
+  it("validates betterResume against the discovered variant ids", () => {
+    expect(normalizeScoreResult({ betterResume: "AIops" }, IDS).betterResume).toBe("AIops");
+    expect(normalizeScoreResult({ betterResume: "AIinfra" }, IDS).betterResume).toBe("AIinfra");
+    expect(normalizeScoreResult({ betterResume: "AIquantum" }, IDS).betterResume).toBe("either");
   });
   it("trims reason strings", () => {
-    expect(normalizeScoreResult({ fitReason: "  strong AI culture  " }).fitReason).toBe("strong AI culture");
+    expect(normalizeScoreResult({ fitReason: "  strong AI culture  " }, IDS).fitReason).toBe("strong AI culture");
   });
 });
 
 describe("formatFitReason", () => {
   it("appends the resume pick when A or B", () => {
-    const out = formatFitReason({ fitScore: 90, fitReason: "AI-forward", betterResume: "B", resumeReason: "LLM serving match" });
+    const out = formatFitReason({ company: "Clio", title: "SysEng", fitScore: 90, fitReason: "AI-forward", betterResume: "AIinfra", resumeReason: "LLM serving match" });
     expect(out).toContain("AI-forward");
-    expect(out).toContain("Resume B");
+    expect(out).toContain("Resume AIinfra");
     expect(out).toContain("LLM serving match");
   });
   it("omits the resume clause when either", () => {
-    const out = formatFitReason({ fitScore: 50, fitReason: "just a reason", betterResume: "either", resumeReason: "" });
+    const out = formatFitReason({ company: "Clio", title: "SysEng", fitScore: 50, fitReason: "just a reason", betterResume: "either", resumeReason: "" });
     expect(out).toBe("just a reason");
   });
 });

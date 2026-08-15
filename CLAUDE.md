@@ -14,14 +14,17 @@ paths directly.
   approval, then go phase by phase with manual approval.
 - `.private/SPEC.md` is the source of truth. `scripts/find_jobs.py` is reference
   only for the location-tagging approach — follow SPEC.md where they differ.
-- My resumes are in `.private/`; never commit them. There are two, same
-  experience section, different project ordering and emphasis:
-  - `resume-infra.tex` — **A**: infra / platform / DevOps / SRE. Also the
-    default for general SDE roles.
-  - `resume-mlinfra.tex` — **B**: ML infra / ML systems / AI platform. Leads
-    with the LLM serving stack and CUDA work.
-  Score a JD against both and report **which version fits better and why**, not
-  just a single number. Never suggest adding a skill or keyword that isn't
+- My resumes are in `.private/`; never commit them. Three variants share the
+  same experience section and differ in the third project slot plus emphasis:
+  - `YaoyiWang_Resume_AIops.tex` — infra / platform / DevOps / SRE / systems
+    engineer, and the **default for general SDE**. Third project is the Mastodon
+    scaling study (Linux/Nginx/TLS, load testing, failure modes).
+  - `YaoyiWang_Resume_AIeng.tex` — AI engineer / LLM product roles. Third
+    project is Job Tracker (Claude fit scorer); skills lead with LangGraph.
+  - `YaoyiWang_Resume_AIinfra.tex` — **only** ML infra / AI infra / ML systems.
+    The one that keeps the CUDA project; leads with the vLLM serving stack.
+  Score a JD against all three and report **which version fits best and why**,
+  not just a single number. Never suggest adding a skill or keyword that isn't
   backed by something in my repos — say "no evidence" instead.
 - **Scoped TDD.** Pure logic / lib functions (dedupe, scope + location tagging,
   prefill guards + metadata extraction, the fit scorer) are **test-first**: write

@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { scoreJob, type ScoreContext, type JobMeta } from "@/lib/scorer";
 
-const ctx: ScoreContext = { preferences: "p", resumeA: "A", resumeB: "B", model: "claude-haiku-4-5" };
+const ctx: ScoreContext = {
+  preferences: "p",
+  variants: [
+    { id: "AIops", label: "infra / platform", text: "Terraform" },
+    { id: "AIinfra", label: "ML infra", text: "vLLM" },
+  ],
+  model: "claude-haiku-4-5",
+};
 const job: JobMeta = {
   company: "Acme",
   title: "SWE",
@@ -35,12 +42,12 @@ describe("scoreJob (skip-safe)", () => {
       content: [
         {
           type: "text",
-          text: JSON.stringify({ fitScore: 82, fitReason: "AI-forward", betterResume: "B", resumeReason: "LLM serving" }),
+          text: JSON.stringify({ fitScore: 82, fitReason: "AI-forward", betterResume: "AIinfra", resumeReason: "LLM serving" }),
         },
       ],
     }));
     const r = await scoreJob(job, ctx, c);
     expect(r?.fitScore).toBe(82);
-    expect(r?.betterResume).toBe("B");
+    expect(r?.betterResume).toBe("AIinfra");
   });
 });

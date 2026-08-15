@@ -1,24 +1,25 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
-import { stripLatex } from "./latex";
 import {
   buildScoreMessages,
+  buildScoreSchema,
   normalizeScoreResult,
-  SCORE_SCHEMA,
   type JobMeta,
+  type ResumeVariant,
   type ScoreResult,
 } from "./prompt";
+import { discoverResumeVariants } from "./variants";
 
 export { isScoringEnabled, formatFitReason } from "./prompt";
-export type { JobMeta, ScoreResult } from "./prompt";
+export type { JobMeta, ResumeVariant, ScoreResult } from "./prompt";
+export { discoverResumeVariants } from "./variants";
 
 const DEFAULT_MODEL = "claude-opus-5";
 
 export interface ScoreContext {
   preferences: string;
-  resumeA: string;
-  resumeB: string;
+  variants: ResumeVariant[];
   model: string;
 }
 
@@ -35,12 +36,13 @@ export interface ScoreClient {
  */
 export function loadScoreContext(privateDir = join(process.cwd(), ".private")): ScoreContext {
   const preferences = readFileSync(join(privateDir, "preferences.md"), "utf-8");
-  const resumeA = stripLatex(readFileSync(join(privateDir, "resume-infra.tex"), "utf-8"));
-  const resumeB = stripLatex(readFileSync(join(privateDir, "resume-mlinfra.tex"), "utf-8"));
+  const variants = discoverResumeVariants(privateDir);
+  if (variants.length === 0) {
+    throw new Error(`No resume .tex files found in ${privateDir}`);
+  }
   return {
     preferences,
-    resumeA,
-    resumeB,
+    variants,
     model: process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL,
   };
 }
@@ -55,7 +57,9 @@ export async function scoreJob(
   ctx: ScoreContext,
   client: ScoreClient = new Anthropic(), // resolves ANTHROPIC_API_KEY / profile from env
 ): Promise<ScoreResult | null> {
-  const { system, user } = buildScoreMessages(job, ctx.preferences, ctx.resumeA, ctx.resumeB);
+  const { system, user } = buildScoreMessages(job, ctx.preferences, ctx.variants);
+  const ids = ctx.variants.map((v) => v.id);
+  const schema = buildScoreSchema(ids);
 
   // No `effort` — it's optional and rejected by models like Haiku 4.5.
   const params: Anthropic.MessageCreateParamsNonStreaming = {
@@ -63,7 +67,7 @@ export async function scoreJob(
     max_tokens: 1024,
     system,
     output_config: {
-      format: { type: "json_schema", schema: SCORE_SCHEMA as unknown as Record<string, unknown> },
+      format: { type: "json_schema", schema: schema as unknown as Record<string, unknown> },
     },
     messages: [{ role: "user", content: user }],
   };
@@ -82,7 +86,7 @@ export async function scoreJob(
   const text = res.content.find((b): b is Anthropic.TextBlock => b.type === "text");
   if (!text) return null;
   try {
-    return normalizeScoreResult(JSON.parse(text.text));
+    return normalizeScoreResult(JSON.parse(text.text), ids);
   } catch {
     return null;
   }
