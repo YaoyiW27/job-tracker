@@ -9,7 +9,7 @@ import {
   type ResumeVariant,
   type ScoreResult,
 } from "./prompt";
-import { discoverResumeVariants, preferencesFromEnv, variantsFromEnv } from "./variants";
+import { discoverResumeVariants, preferencesFromEnv, styleFromEnv, variantsFromEnv } from "./variants";
 
 export {
   isScoringEnabled,
@@ -19,13 +19,15 @@ export {
   MIN_DESCRIPTION_WORDS,
 } from "./prompt";
 export type { JobMeta, ResumeVariant, ScoreResult } from "./prompt";
-export { discoverResumeVariants, preferencesFromEnv, variantsFromEnv } from "./variants";
+export { discoverResumeVariants, preferencesFromEnv, styleFromEnv, variantsFromEnv } from "./variants";
 
 const DEFAULT_MODEL = "claude-opus-5";
 
 export interface ScoreContext {
   preferences: string;
   variants: ResumeVariant[];
+  /** Voice rules for drafted answers. Optional — empty when not configured. */
+  style: string;
   model: string;
 }
 
@@ -57,7 +59,15 @@ export function loadScoreContext(
   try {
     const preferences = readFileSync(join(privateDir, "preferences.md"), "utf-8");
     const variants = discoverResumeVariants(privateDir);
-    if (variants.length > 0) return { preferences, variants, model };
+    if (variants.length > 0) {
+      let style = "";
+      try {
+        style = readFileSync(join(privateDir, "answer-style.md"), "utf-8");
+      } catch {
+        // Optional: answers just fall back to a terse default voice.
+      }
+      return { preferences, variants, style, model };
+    }
   } catch {
     // No .private/ here — fall through to the env-var source below.
   }
@@ -66,7 +76,9 @@ export function loadScoreContext(
   // supplies the same content as base64 env vars.
   const preferences = preferencesFromEnv(env);
   const variants = variantsFromEnv(env);
-  if (preferences && variants.length > 0) return { preferences, variants, model };
+  if (preferences && variants.length > 0) {
+    return { preferences, variants, style: styleFromEnv(env), model };
+  }
 
   throw new ScoreContextError(
     "Scorer context unavailable: no .private/ on disk and no SCORER_PREFERENCES_B64 / " +

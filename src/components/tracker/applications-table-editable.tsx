@@ -74,6 +74,43 @@ function GrowingCell({
   );
 }
 
+/** The live handlers, handed to cells through the table rather than a closure. */
+interface EditorMeta {
+  getDraft: (row: Application) => EditableRow;
+  editField: (row: Application, field: EditableField, value: string) => void;
+  commit: (row: Application) => void;
+  remove: (row: Application) => void;
+}
+
+function textCell(
+  table: { options: { meta?: unknown } },
+  row: Application,
+  field: EditableField,
+  type = "text",
+) {
+  const m = table.options.meta as EditorMeta;
+  return type === "text" ? (
+    <GrowingCell
+      value={m.getDraft(row)[field]}
+      onChange={(v) => m.editField(row, field, v)}
+      onCommit={() => m.commit(row)}
+    />
+  ) : (
+    // date / url keep a real input: the native pickers and validation matter
+    // more there than wrapping does.
+    <input
+      type={type}
+      value={m.getDraft(row)[field]}
+      onChange={(e) => m.editField(row, field, e.target.value)}
+      onBlur={() => m.commit(row)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      className={inputCls}
+    />
+  );
+}
+
 export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props) {
   const [drafts, setDrafts] = React.useState<Record<string, EditableRow>>({});
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -125,53 +162,33 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
     if (res.ok) onDeleted(row.id);
   };
 
-  const textCell = (row: Application, field: EditableField, type = "text") =>
-    type === "text" ? (
-      <GrowingCell
-        value={getDraft(row)[field]}
-        onChange={(v) => editField(row, field, v)}
-        onCommit={() => commit(row)}
-      />
-    ) : (
-      // date / url keep a real input: the native pickers and validation matter
-      // more there than wrapping does.
-      <input
-        type={type}
-        value={getDraft(row)[field]}
-        onChange={(e) => editField(row, field, e.target.value)}
-        onBlur={() => commit(row)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        }}
-        className={inputCls}
-      />
-    );
-
   const ch = createColumnHelper<Application>();
   const columns = React.useMemo(
     () => [
       ch.accessor("company", {
         header: "Company",
-        cell: ({ row }) => textCell(row.original, "company"),
+        cell: ({ row, table }) => textCell(table, row.original, "company"),
         meta: { className: "min-w-[7rem]" },
       }),
       // Widths are hints, not a fixed layout: the date input has an intrinsic
       // size that a table-fixed percentage was clipping.
       ch.accessor("title", {
         header: "Title",
-        cell: ({ row }) => textCell(row.original, "title"),
+        cell: ({ row, table }) => textCell(table, row.original, "title"),
         meta: { className: "w-[22%] min-w-[10rem]" },
       }),
       ch.accessor("status", {
         header: "Status",
         meta: { className: "min-w-[7rem]" },
-        cell: ({ row }) => (
+        cell: ({ row, table }) => {
+          const m = table.options.meta as EditorMeta;
+          return (
           <select
-            value={getDraft(row.original).status}
+            value={m.getDraft(row.original).status}
             onChange={(e) => {
-              editField(row.original, "status", e.target.value);
+              m.editField(row.original, "status", e.target.value);
               // commit immediately after state settles
-              setTimeout(() => commit(row.original), 0);
+              setTimeout(() => m.commit(row.original), 0);
             }}
             className={inputCls}
           >
@@ -181,28 +198,23 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
               </option>
             ))}
           </select>
-        ),
+          );
+        },
       }),
       ch.accessor((r) => (r.appliedDate ? String(r.appliedDate) : ""), {
         id: "appliedDate",
         header: "Applied",
-        cell: ({ row }) => textCell(row.original, "appliedDate", "date"),
+        cell: ({ row, table }) => textCell(table, row.original, "appliedDate", "date"),
       }),
       ch.accessor("location", {
         header: "Location",
-        cell: ({ row }) => textCell(row.original, "location"),
+        cell: ({ row, table }) => textCell(table, row.original, "location"),
         meta: { className: "w-[13%] min-w-[7rem]" },
       }),
       ch.accessor("salary", {
         header: "Salary",
-        cell: ({ row }) => textCell(row.original, "salary"),
+        cell: ({ row, table }) => textCell(table, row.original, "salary"),
         meta: { className: "w-[15%] min-w-[8rem]" },
-      }),
-      ch.accessor("notes", {
-        header: "Notes",
-        enableSorting: false,
-        cell: ({ row }) => textCell(row.original, "notes"),
-        meta: { className: "w-[13%] min-w-[6rem]" },
       }),
       // Editable, not just a link: a row added from pasted text has no URL yet,
       // and there was previously no way to add one after the fact.
@@ -212,9 +224,9 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
         // Needs a floor: the column would otherwise size to the word "Link" and
         // squeeze the input down to a few unclickable pixels next to "open".
         meta: { className: "w-[12%] min-w-[8rem]" },
-        cell: ({ row }) => (
+        cell: ({ row, table }) => (
           <div className="flex items-center gap-1">
-            <div className="min-w-0 flex-1">{textCell(row.original, "url", "url")}</div>
+            <div className="min-w-0 flex-1">{textCell(table, row.original, "url", "url")}</div>
             {row.original.url && (
               <a
                 href={row.original.url}
@@ -229,12 +241,18 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
           </div>
         ),
       }),
+      ch.accessor("notes", {
+        header: "Notes",
+        enableSorting: false,
+        cell: ({ row, table }) => textCell(table, row.original, "notes"),
+        meta: { className: "w-[13%] min-w-[6rem]" },
+      }),
       ch.display({
         id: "actions",
         header: "",
-        cell: ({ row }) => (
+        cell: ({ row, table }) => (
           <button
-            onClick={() => remove(row.original)}
+            onClick={() => (table.options.meta as EditorMeta).remove(row.original)}
             className="px-2 text-xs text-muted-foreground hover:text-destructive"
             aria-label="Delete row"
           >
@@ -243,8 +261,12 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
         ),
       }),
     ],
+    // No dependencies on purpose. A columns array that changes identity makes
+    // TanStack rebuild every cell, which unmounts the focused input — that is
+    // why typing used to lose focus after one character and never commit. Cells
+    // read the live handlers off table.options.meta instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [drafts],
+    [],
   );
 
   const table = useReactTable({
@@ -254,6 +276,7 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    meta: { getDraft, editField, commit, remove } satisfies EditorMeta,
   });
 
   if (rows.length === 0) {

@@ -18,6 +18,7 @@ import type { ResumeVariant } from "./prompt";
 const LABEL = /^%\s*variant:\s*(.+)$/im;
 const RESUME_ENV = /^SCORER_RESUME_(.+)_B64$/;
 const PREFERENCES_ENV = "SCORER_PREFERENCES_B64";
+const STYLE_ENV = "SCORER_ANSWER_STYLE_B64";
 
 /** Build a variant from raw LaTeX. Shared by the file and env paths. */
 function toVariant(id: string, raw: string): ResumeVariant {
@@ -46,6 +47,11 @@ export function discoverResumeVariants(privateDir: string): ResumeVariant[] {
 /** Preferences from SCORER_PREFERENCES_B64, or null when not configured. */
 export function preferencesFromEnv(env: NodeJS.ProcessEnv | Record<string, string | undefined>): string | null {
   return decode(env[PREFERENCES_ENV]);
+}
+
+/** Answer voice rules from SCORER_ANSWER_STYLE_B64. Optional — "" when unset. */
+export function styleFromEnv(env: NodeJS.ProcessEnv | Record<string, string | undefined>): string {
+  return decode(env[STYLE_ENV]) ?? "";
 }
 
 /**

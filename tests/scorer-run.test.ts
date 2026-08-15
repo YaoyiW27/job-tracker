@@ -7,6 +7,7 @@ const ctx: ScoreContext = {
     { id: "AIops", label: "infra / platform", text: "Terraform" },
     { id: "AIinfra", label: "ML infra", text: "vLLM" },
   ],
+  style: "",
   model: "claude-haiku-4-5",
 };
 const job: JobMeta = {
