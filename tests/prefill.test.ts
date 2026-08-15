@@ -80,9 +80,12 @@ describe("parseMetadata — extraction precedence", () => {
     expect(r.title).toBe("R&D Engineer '27");
   });
 
-  it("returns blanks when nothing is present", () => {
+  it("returns blanks when nothing is present, and says why", () => {
+    // No JSON-LD, no og:title, not even a <title> — a real page always has one,
+    // so this is reported as an interstitial rather than a metadata-less page.
     const r = parseMetadata(`<html><body>no metadata here</body></html>`);
-    expect(r).toEqual({ company: "", title: "", salary: null, via: [] });
+    expect(r).toMatchObject({ company: "", title: "", salary: null, via: [] });
+    expect(r.error).toBeDefined();
   });
 
   it("extracts salary from JSON-LD baseSalary when present", () => {
@@ -95,22 +98,29 @@ describe("parseMetadata — extraction precedence", () => {
   });
 });
 
-describe("blocked / empty responses", () => {
+describe("blocked / interstitial responses", () => {
+  // Trimmed from what careers.ibm.com actually serves a non-browser client:
+  // HTTP 202, an AWS WAF challenge, and an empty <title>.
+  const WAF_PAGE =
+    '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title></title>' +
+    '<script type="text/javascript">window.awsWafCookieDomainList = [];</script>' +
+    "</head><body></body></html>";
+
   it("names bot protection instead of blaming the page's contents", () => {
-    // careers.ibm.com answers a non-browser client with HTTP 202 and zero
-    // bytes; "no company/title found" reads as "try another link", when in
-    // fact this site will never work.
-    const r = parseMetadata("");
+    const r = parseMetadata(WAF_PAGE);
     expect(r.via).toEqual([]);
-    expect(r.error).toMatch(/block|empty/i);
+    expect(r.error).toMatch(/bot-check|blocks automated/i);
   });
 
-  it("treats a body with no markup at all as blocked", () => {
-    expect(parseMetadata("   \n  ").error).toMatch(/block|empty/i);
+  it("flags an empty body the same way", () => {
+    expect(parseMetadata("").error).toMatch(/bot-check|blocks automated/i);
+    expect(parseMetadata("   \n  ").error).toMatch(/bot-check|blocks automated/i);
   });
 
   it("does not flag a real page that simply lacks job metadata", () => {
     const html = "<html><head><title>Careers</title></head><body><p>hi</p></body></html>";
-    expect(parseMetadata(html).error).toBeUndefined();
+    const r = parseMetadata(html);
+    expect(r.via).toContain("title");
+    expect(r.error).toBeUndefined();
   });
 });

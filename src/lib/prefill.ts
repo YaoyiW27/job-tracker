@@ -175,20 +175,6 @@ async function fetchHtml(u: URL): Promise<string> {
  * against fixture HTML without a network fetch.
  */
 export function parseMetadata(html: string): PrefillResult {
-  // An empty body is bot protection, not a page that happens to lack metadata:
-  // careers.ibm.com answers a non-browser client with 202 and zero bytes, and
-  // LinkedIn serves a login wall. Saying "no company/title found" sends you off
-  // to retry a link that can never work.
-  if (!html.trim()) {
-    return {
-      company: "",
-      title: "",
-      salary: null,
-      via: [],
-      error: "the site returned an empty page — it blocks automated fetching",
-    };
-  }
-
   const via: string[] = [];
   const ld = jsonLdJob(html);
 
@@ -222,7 +208,17 @@ export function parseMetadata(html: string): PrefillResult {
     }
   }
 
-  return { company, title, salary: ld?.salary ?? null, via };
+  // Not one of JSON-LD / og:title / <title> matched. Every real page has at
+  // least a title, so this is an interstitial: careers.ibm.com answers a
+  // non-browser client with an AWS WAF challenge (HTTP 202, empty <title>), and
+  // LinkedIn serves a login wall. Saying "no company/title found on that page"
+  // sends you off to retry a link that can never work.
+  const error =
+    via.length === 0
+      ? "the site returned a bot-check page, not the posting — it blocks automated fetching"
+      : undefined;
+
+  return { company, title, salary: ld?.salary ?? null, via, ...(error ? { error } : {}) };
 }
 
 export async function prefillFromUrl(rawUrl: string): Promise<PrefillResult> {
