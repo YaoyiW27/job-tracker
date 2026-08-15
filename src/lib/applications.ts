@@ -61,7 +61,12 @@ export async function findDuplicate(input: DuplicateInput): Promise<DuplicateMat
 }
 
 export async function listApplications() {
-  return db.application.findMany({ orderBy: { updatedAt: "desc" } });
+  // Not updatedAt: ordering by "what I edited last" made a row jump to the top
+  // whenever I fixed a typo in it. Most recently applied first, undated rows
+  // (still saved, not sent) last, then newest-added as the tiebreak.
+  return db.application.findMany({
+    orderBy: [{ appliedDate: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+  });
 }
 
 /** Find the application already linked to a job (jobId is 1:1), if any. */

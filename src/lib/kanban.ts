@@ -38,6 +38,27 @@ export function groupByStatus<T extends { status: string }>(apps: T[]): Record<A
   return groups;
 }
 
+/**
+ * Pipeline position, for sorting the Status column. Alphabetical order puts
+ * GHOSTED between APPLIED and INTERVIEW, which says nothing about where an
+ * application stands. Unknown values sort last rather than first.
+ */
+export function statusRank(status: string): number {
+  const i = (STATUS_ORDER as string[]).indexOf(status);
+  return i === -1 ? STATUS_ORDER.length : i;
+}
+
+/**
+ * Which board columns render a full card. Saved and applied grow into the
+ * hundreds over a search and are read as a count; rejected and ghosted are
+ * history. The few columns that need action get the detail.
+ */
+const DETAIL_STATUSES = new Set<string>([APP_STATUS.OA, APP_STATUS.INTERVIEW, APP_STATUS.OFFER]);
+
+export function showsDetail(status: string): boolean {
+  return DETAIL_STATUSES.has(status);
+}
+
 /** Patch to apply when a card is dropped on a column, or null if unchanged. */
 export function movePatch(
   card: { status: string; appliedDate: string | Date | null },

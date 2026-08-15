@@ -12,6 +12,7 @@ import {
 import type { Application } from "@prisma/client";
 import { APP_STATUS } from "@/lib/enums";
 import { statusStyle } from "@/lib/status-style";
+import { statusRank } from "@/lib/kanban";
 import {
   buildPatch,
   toEditableRow,
@@ -113,7 +114,11 @@ function textCell(
 
 export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props) {
   const [drafts, setDrafts] = React.useState<Record<string, EditableRow>>({});
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  // Default to the pipeline, not to whatever the server returned. The server
+  // orders by applied date; clicking any header switches to that column.
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "status", desc: false },
+  ]);
   const [savingId, setSavingId] = React.useState<string | null>(null);
 
   const getDraft = React.useCallback(
@@ -179,6 +184,9 @@ export function ApplicationsTableEditable({ rows, onPatched, onDeleted }: Props)
       }),
       ch.accessor("status", {
         header: "Status",
+        // Pipeline order, not alphabetical: A-Z would put GHOSTED between
+        // APPLIED and INTERVIEW.
+        sortingFn: (a, b) => statusRank(a.original.status) - statusRank(b.original.status),
         meta: { className: "min-w-[7rem]" },
         cell: ({ row, table }) => {
           const m = table.options.meta as EditorMeta;

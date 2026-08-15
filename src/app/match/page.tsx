@@ -52,6 +52,7 @@ export default function MatchPage() {
           question,
           notes,
           company: result?.company,
+          // Whatever the score picked; unscored falls back to the default variant.
           resumeId: result?.betterResume,
           force: true, // the score already ran on this same text
         }),
@@ -193,7 +194,11 @@ export default function MatchPage() {
             </p>
           </div>
 
-          <div className="space-y-3 border-t pt-4">
+        </div>
+      )}
+
+      {description.trim() && (
+        <div className="space-y-3 rounded-md border p-5">
             <p className="text-sm font-medium">Answer a form question</p>
 
             <label className="block space-y-1">
@@ -202,7 +207,7 @@ export default function MatchPage() {
               </span>
               <input
                 className="w-full rounded-md border px-3 py-2 text-sm"
-                placeholder={`Why are you interested in working for ${result.company}?`}
+                placeholder={`Why are you interested in working for ${result?.company ?? "them"}?`}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
               />
@@ -293,7 +298,6 @@ export default function MatchPage() {
               </div>
             )}
           </div>
-        </div>
       )}
     </main>
   );

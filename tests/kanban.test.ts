@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { STATUS_ORDER, groupByStatus, movePatch } from "@/lib/kanban";
+import { STATUS_ORDER, groupByStatus, movePatch, statusRank, showsDetail } from "@/lib/kanban";
 
 const apps = [
   { id: "1", status: "SAVED" },
@@ -59,5 +59,33 @@ describe("movePatch", () => {
     expect(movePatch({ status: "OA", appliedDate: null }, "SAVED", TODAY)).toEqual({
       status: "SAVED",
     });
+  });
+});
+
+describe("statusRank", () => {
+  it("orders by pipeline position, not alphabetically", () => {
+    // Alphabetically APPLIED < GHOSTED < INTERVIEW < OA < OFFER — sorting the
+    // Status column that way tells you nothing about where things stand.
+    const sorted = ["OFFER", "SAVED", "INTERVIEW", "APPLIED"].sort(
+      (a, b) => statusRank(a) - statusRank(b),
+    );
+    expect(sorted).toEqual(["SAVED", "APPLIED", "INTERVIEW", "OFFER"]);
+  });
+  it("puts an unknown status last rather than first", () => {
+    expect(statusRank("NONSENSE")).toBeGreaterThan(statusRank("GHOSTED"));
+  });
+});
+
+describe("showsDetail", () => {
+  it("keeps the detail for the columns worth reading one by one", () => {
+    for (const s of ["OA", "INTERVIEW", "OFFER"]) {
+      expect(showsDetail(s), s).toBe(true);
+    }
+  });
+  it("collapses the ones that grow to hundreds", () => {
+    // Saved and applied become a pile; rejected and ghosted are history.
+    for (const s of ["SAVED", "APPLIED", "REJECTED", "GHOSTED"]) {
+      expect(showsDetail(s), s).toBe(false);
+    }
   });
 });

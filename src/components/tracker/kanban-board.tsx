@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { Application } from "@prisma/client";
-import { BOARD_GROUPS, groupByStatus, movePatch } from "@/lib/kanban";
+import { BOARD_GROUPS, groupByStatus, movePatch, showsDetail } from "@/lib/kanban";
 import type { AppStatus } from "@/lib/enums";
 import { statusStyle } from "@/lib/status-style";
 
@@ -15,6 +15,7 @@ type Props = {
 export function KanbanBoard({ rows, onPatched, onDeleted }: Props) {
   const [dragId, setDragId] = React.useState<string | null>(null);
   const [overCol, setOverCol] = React.useState<string | null>(null);
+  const [expanded, setExpanded] = React.useState<string | null>(null);
   const groups = groupByStatus(rows);
 
   async function drop(toStatus: string) {
@@ -42,6 +43,11 @@ export function KanbanBoard({ rows, onPatched, onDeleted }: Props) {
 
   const column = (status: AppStatus) => {
     const style = statusStyle(status);
+    const detail = showsDetail(status);
+    const cards = groups[status];
+    // Saved/applied run to hundreds over a search. Render a window of them so
+    // the column stays draggable without laying out the whole pile.
+    const shown = expanded === status ? cards : cards.slice(0, detail ? cards.length : 8);
     return (
       <div
         key={status}
@@ -61,7 +67,7 @@ export function KanbanBoard({ rows, onPatched, onDeleted }: Props) {
           <span className="ml-auto tabular-nums">{groups[status].length}</span>
         </div>
         <div className="flex min-h-[72px] flex-col gap-2 p-2">
-          {groups[status].map((a) => (
+          {shown.map((a) => (
             <div
               key={a.id}
               draggable
@@ -77,8 +83,16 @@ export function KanbanBoard({ rows, onPatched, onDeleted }: Props) {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   {/* Wrapped, not truncated — same reasoning as the table. */}
-                  <p className="text-sm font-medium leading-snug">{a.company}</p>
-                  <p className="text-xs leading-snug text-muted-foreground">{a.title}</p>
+                  <p className={`font-medium leading-snug ${detail ? "text-sm" : "truncate text-xs"}`}>
+                    {a.company}
+                  </p>
+                  <p
+                    className={`leading-snug text-muted-foreground ${
+                      detail ? "text-xs" : "truncate text-[11px]"
+                    }`}
+                  >
+                    {a.title}
+                  </p>
                 </div>
                 <button
                   onClick={() => del(a)}
@@ -88,7 +102,7 @@ export function KanbanBoard({ rows, onPatched, onDeleted }: Props) {
                   ✕
                 </button>
               </div>
-              {(a.appliedDate || a.salary) && (
+              {detail && (a.appliedDate || a.salary) && (
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
                   {[
                     a.appliedDate ? new Date(a.appliedDate).toISOString().slice(0, 10) : null,
@@ -98,7 +112,7 @@ export function KanbanBoard({ rows, onPatched, onDeleted }: Props) {
                     .join(" · ")}
                 </p>
               )}
-              {a.url && (
+              {detail && a.url && (
                 <a
                   href={a.url}
                   target="_blank"
@@ -110,6 +124,23 @@ export function KanbanBoard({ rows, onPatched, onDeleted }: Props) {
               )}
             </div>
           ))}
+
+          {cards.length > shown.length && (
+            <button
+              onClick={() => setExpanded(status)}
+              className="rounded-md border border-dashed py-1.5 text-xs text-muted-foreground hover:bg-background"
+            >
+              + {cards.length - shown.length} more
+            </button>
+          )}
+          {expanded === status && !detail && cards.length > 8 && (
+            <button
+              onClick={() => setExpanded(null)}
+              className="rounded-md border border-dashed py-1.5 text-xs text-muted-foreground hover:bg-background"
+            >
+              Show fewer
+            </button>
+          )}
         </div>
       </div>
     );
