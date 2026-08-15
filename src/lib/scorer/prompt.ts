@@ -159,6 +159,18 @@ export function formatFitReason(r: ScoreResult): string {
   return `${r.fitReason} · Resume ${r.betterResume}${clause}`;
 }
 
+/**
+ * Whether a pasted description is long enough to actually score against.
+ *
+ * A partial copy (one bullet, a truncated selection, a page that still needed
+ * "Show more" clicked) is the common failure: the model dutifully returns a
+ * confident number computed from almost nothing, and the low score reads as
+ * "bad job" rather than "bad input". Cheap to catch, expensive to miss.
+ */
+export function looksLikeFullDescription(text: string, minWords = 50): boolean {
+  return text.trim().split(/\s+/).filter(Boolean).length >= minWords;
+}
+
 /** Scoring is optional — enabled only when an Anthropic API key is configured. */
 export function isScoringEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return Boolean(env.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY.trim());

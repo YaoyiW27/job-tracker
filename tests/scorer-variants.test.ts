@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildScoreMessages,
   buildScoreSchema,
+  looksLikeFullDescription,
   normalizeScoreResult,
   type JobMeta,
   type ResumeVariant,
@@ -120,6 +121,20 @@ describe("normalizeScoreResult", () => {
   });
 });
 
+describe("looksLikeFullDescription", () => {
+  it("rejects a truncated paste — the input error that reads as a bad job", () => {
+    // The real case: 15 words off a LinkedIn page that still needed "Show more".
+    expect(looksLikeFullDescription("Design and maintain AWS infrastructure supporting production environments across a globally distributed team")).toBe(false);
+  });
+
+  it("accepts a full posting", () => {
+    expect(looksLikeFullDescription("word ".repeat(200))).toBe(true);
+  });
+
+  it("counts words, not characters, so whitespace noise cannot fake length", () => {
+    expect(looksLikeFullDescription("a\n\n\n   b\t\tc")).toBe(false);
+  });
+});
 
 describe("metadata placeholders vs a real description", () => {
   const bare = { ...JOB, locations: [], salary: null, locationFit: "unknown" };
