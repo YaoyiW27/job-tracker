@@ -35,12 +35,22 @@ export default function MatchPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description, force }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Scoring failed");
+      // A crashed or timed-out function returns an empty body, and res.json()
+      // then throws "Unexpected end of JSON input" — which tells you nothing.
+      // Read the text first so the status code still says something useful.
+      const body = await res.text();
+      let data: Record<string, unknown> = {};
+      try {
+        data = body ? JSON.parse(body) : {};
+      } catch {
+        setError(`Scoring failed (HTTP ${res.status}). ${body.slice(0, 200) || "Empty response."}`);
         return;
       }
-      setResult(data);
+      if (!res.ok) {
+        setError((data.error as string) ?? `Scoring failed (HTTP ${res.status})`);
+        return;
+      }
+      setResult(data as unknown as ScoreResponse);
     } catch (e) {
       setError((e as Error).message);
     } finally {

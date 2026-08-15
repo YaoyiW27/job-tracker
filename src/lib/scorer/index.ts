@@ -9,7 +9,7 @@ import {
   type ResumeVariant,
   type ScoreResult,
 } from "./prompt";
-import { discoverResumeVariants } from "./variants";
+import { discoverResumeVariants, preferencesFromEnv, variantsFromEnv } from "./variants";
 
 export {
   isScoringEnabled,
@@ -19,7 +19,7 @@ export {
   MIN_DESCRIPTION_WORDS,
 } from "./prompt";
 export type { JobMeta, ResumeVariant, ScoreResult } from "./prompt";
-export { discoverResumeVariants } from "./variants";
+export { discoverResumeVariants, preferencesFromEnv, variantsFromEnv } from "./variants";
 
 const DEFAULT_MODEL = "claude-opus-5";
 
@@ -40,17 +40,38 @@ export interface ScoreClient {
  * Load the scorer's context from .private/ (never committed). Resumes are LaTeX
  * → plain text. Model is overridable via ANTHROPIC_MODEL for cost control.
  */
-export function loadScoreContext(privateDir = join(process.cwd(), ".private")): ScoreContext {
-  const preferences = readFileSync(join(privateDir, "preferences.md"), "utf-8");
-  const variants = discoverResumeVariants(privateDir);
-  if (variants.length === 0) {
-    throw new Error(`No resume .tex files found in ${privateDir}`);
+export class ScoreContextError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ScoreContextError";
   }
-  return {
-    preferences,
-    variants,
-    model: process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL,
-  };
+}
+
+export function loadScoreContext(
+  privateDir = join(process.cwd(), ".private"),
+  env: NodeJS.ProcessEnv = process.env,
+): ScoreContext {
+  const model = env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
+
+  // 1. Local: read .private/ off disk.
+  try {
+    const preferences = readFileSync(join(privateDir, "preferences.md"), "utf-8");
+    const variants = discoverResumeVariants(privateDir);
+    if (variants.length > 0) return { preferences, variants, model };
+  } catch {
+    // No .private/ here — fall through to the env-var source below.
+  }
+
+  // 2. Deployed: .private/ is gitignored and never shipped, so a deployment
+  // supplies the same content as base64 env vars.
+  const preferences = preferencesFromEnv(env);
+  const variants = variantsFromEnv(env);
+  if (preferences && variants.length > 0) return { preferences, variants, model };
+
+  throw new ScoreContextError(
+    "Scorer context unavailable: no .private/ on disk and no SCORER_PREFERENCES_B64 / " +
+      "SCORER_RESUME_<ID>_B64 env vars. See the README (AI fit scorer).",
+  );
 }
 
 /**

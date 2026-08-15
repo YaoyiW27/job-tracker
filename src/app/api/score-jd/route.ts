@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   isScoringEnabled,
   loadScoreContext,
+  ScoreContextError,
   countWords,
   looksLikeFullDescription,
   scoreJob,
@@ -50,7 +51,20 @@ export async function POST(req: Request) {
     );
   }
 
-  const ctx = loadScoreContext();
+  // .private/ is never deployed, so on Vercel this needs the SCORER_*_B64 env
+  // vars. Without them the old code threw ENOENT out of the handler and the
+  // browser got an empty body ("Unexpected end of JSON input") instead of a
+  // reason.
+  let ctx;
+  try {
+    ctx = loadScoreContext();
+  } catch (err) {
+    if (err instanceof ScoreContextError) {
+      return NextResponse.json({ error: err.message }, { status: 503 });
+    }
+    throw err;
+  }
+
   const job: JobMeta = {
     company: str("company") || "unknown",
     title: str("title") || "unknown",

@@ -10,8 +10,11 @@ vi.mock("@/lib/scorer", async () => {
   const actual = await vi.importActual<typeof import("@/lib/scorer/prompt")>(
     "@/lib/scorer/prompt",
   );
+  const real = await vi.importActual<typeof import("@/lib/scorer")>("@/lib/scorer");
   return {
     ...actual,
+    // The route narrows on this class, so it must be the real one.
+    ScoreContextError: real.ScoreContextError,
     scoreJob: (...args: unknown[]) => scoreJob(...args),
     loadScoreContext: () => loadScoreContext(),
   };
@@ -113,5 +116,24 @@ describe("countWords", () => {
     expect(countWords("  a \n\n b \t c  ")).toBe(3);
     expect(countWords("")).toBe(0);
     expect(countWords("   ")).toBe(0);
+  });
+});
+
+describe("missing scorer context", () => {
+  it("answers 503 with a reason instead of crashing into an empty body", async () => {
+    const { ScoreContextError } = await import("@/lib/scorer");
+    loadScoreContext.mockImplementation(() => {
+      throw new ScoreContextError("Scorer context unavailable: no .private/ …");
+    });
+
+    const res = await post({ description: FULL });
+
+    expect(res.status).toBe(503);
+    // The old failure mode: an unhandled throw, empty body, and a browser-side
+    // "Unexpected end of JSON input" that named neither the cause nor the fix.
+    const body = await res.text();
+    expect(body.length).toBeGreaterThan(0);
+    expect(JSON.parse(body).error).toContain("Scorer context unavailable");
+    expect(scoreJob).not.toHaveBeenCalled();
   });
 });
