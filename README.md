@@ -137,9 +137,33 @@ absent:
 | `SCORER_RESUME_<ID>_B64` | one per résumé; `<ID>` becomes the variant id, so match the filename's case |
 
 Disk always wins locally, so editing a résumé takes effect immediately without
-touching env vars — but the deployment keeps serving the old copy until those
-vars are updated. With neither source present the endpoint answers `503` with a
+touching env vars. With neither source present the endpoint answers `503` with a
 reason rather than failing opaquely.
+
+### After editing a résumé or preferences.md
+
+The secrets and env vars hold a **copy of the file's contents**, not a pointer to
+it — so renaming nothing and editing the text still leaves two stale copies. The
+local app is correct immediately; the other two are not until you re-upload:
+
+```bash
+# 1. GitHub Actions (nightly scoring) — repeat per file that changed
+base64 -i .private/preferences.md | tr -d '\n' | gh secret set PRIVATE_PREFERENCES_B64 --repo YaoyiW27/job-tracker
+
+# 2. Vercel (/match on the live site) — regenerate all four lines, then paste
+#    them into Settings -> Environments -> Production -> Environment Variables
+{ printf 'SCORER_PREFERENCES_B64="%s"\n' "$(base64 -i .private/preferences.md | tr -d '\n')"
+  for f in .private/*.tex; do
+    printf 'SCORER_RESUME_%s_B64="%s"\n' "$(basename "$f" .tex | awk -F_ '{print $NF}')" "$(base64 -i "$f" | tr -d '\n')"
+  done
+} > /tmp/vercel-scorer-env.txt
+```
+
+Vercel needs a **redeploy** afterwards — env var changes do not reach an existing
+deployment. Any push to `main` does it.
+
+Symptom of a stale copy: the résumé recommendation cites a project you removed,
+or `/match` and a local `npm run score` disagree about the same posting.
 
 ## Scripts
 
@@ -276,7 +300,8 @@ and prints only their byte sizes. Optional repo *variable* `ANTHROPIC_MODEL`
 overrides the model (defaults to `claude-sonnet-5` in CI).
 
 Re-run these `base64` commands and re-set the secret whenever a résumé changes;
-CI has no other way to see the edit.
+CI has no other way to see the edit. Vercel holds a separate copy for `/match` —
+see [After editing a résumé](#after-editing-a-résumé-or-preferencesmd).
 
 **GitHub disables scheduled workflows after 60 days with no repository
 activity.** Normal use (any commit) resets the clock; if it does trip, the
