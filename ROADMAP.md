@@ -109,3 +109,4 @@ and `scope.ts` states an immigration constraint.
 - 2026-08-14 — fix: US/Vancouver location bug — ambiguous cities (Richmond/Vancouver/Surrey) now disambiguated by state/province; word-boundary US-state detection; re-ingest cut US-in-Vancouver mislabels 22→0 (10 new location tests) — `815f895`
 - 2026-08-14 — feat: freshness as a separate signal — recencyTier + Discover Fit/Newest sort toggle + Fresh badge (fitScore untouched); 10 tests — `815f895`
 - 2026-08-14 — fix: scorer dropped unsupported `effort` param (Haiku 400) + scoreJob skip-safe on API error; live run 20 scored/0 skipped (133 tests) — `815f895`
+- 2026-08-17 — feat: Add-row opens as APPLIED + today; todayYmd() pinned to America/Vancouver (DST-safe, machine-TZ-independent); switching back to SAVED clears the auto-stamp so bookmarks stop inflating the over-time chart (10 new tests, 302 total) — `193aa31`
