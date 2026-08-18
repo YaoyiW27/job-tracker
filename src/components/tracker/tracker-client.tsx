@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AddRowDialog } from "./add-row-dialog";
 import { ApplicationsTableEditable } from "./applications-table-editable";
 import { KanbanBoard } from "./kanban-board";
-import { FILTER_STATUSES, countByStatus, filterByStatus } from "@/lib/status-filter";
+import { FILTER_STATUSES, chipCount, filterByStatus } from "@/lib/status-filter";
 import { statusStyle } from "@/lib/status-style";
 
 type View = "table" | "board";
@@ -29,7 +29,7 @@ export function TrackerClient({
   // Only the table narrows — the board is already grouped by status.
   const [statusFilter, setStatusFilter] = React.useState<string | null>(null);
 
-  const counts = countByStatus(apps);
+
   const visible = filterByStatus(apps, statusFilter);
 
   const onCreated = (app: Application) => setApps((prev) => [app, ...prev]);
@@ -84,13 +84,18 @@ export function TrackerClient({
             return (
               <button
                 key={s}
+                title={
+                  s === "APPLIED"
+                    ? "Everything you have sent, including ones since rejected"
+                    : undefined
+                }
                 onClick={() => setStatusFilter(active ? null : s)}
                 className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
                   active ? "bg-foreground text-background" : "hover:bg-muted"
                 }`}
               >
                 <span className={`size-1.5 rounded-full ${statusStyle(s).dot}`} />
-                {s} · {counts[s]}
+                {s} · {chipCount(apps, s)}
               </button>
             );
           })}

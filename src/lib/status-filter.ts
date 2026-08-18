@@ -23,10 +23,29 @@ export function countByStatus(rows: { status: string }[]): Record<string, number
   return counts;
 }
 
+/**
+ * "Applied" means *sent*, so it covers every later state too — an application
+ * that has since been rejected was still applied to. Counting it as the current
+ * stage made "Applied · 8" appear after twelve were sent and four bounced. The
+ * dashboard already reads it this way (status !== SAVED); this matches it.
+ *
+ * The chips therefore overlap on purpose: 12 applied, of which 2 are at OA.
+ */
+export function matchesFilter(row: { status: string }, status: string | null): boolean {
+  if (!status) return true;
+  if (status === APP_STATUS.APPLIED) return row.status !== APP_STATUS.SAVED;
+  return row.status === status;
+}
+
+/** How many rows a chip would show — not the same as countByStatus for APPLIED. */
+export function chipCount(rows: { status: string }[], status: string): number {
+  return rows.filter((r) => matchesFilter(r, status)).length;
+}
+
 /** Narrow to one status, or return everything when nothing is selected. */
 export function filterByStatus<T extends { status: string }>(
   rows: T[],
   status: string | null,
 ): T[] {
-  return status ? rows.filter((r) => r.status === status) : rows;
+  return status ? rows.filter((r) => matchesFilter(r, status)) : rows;
 }
