@@ -51,16 +51,26 @@ export function toEditableRow(app: AppLike): EditableRow {
   };
 }
 
+/** The calendar this tracker's dates are stamped in. */
+export const TRACKER_TIME_ZONE = "America/Vancouver";
+
 /**
- * Today as yyyy-mm-dd in the *local* calendar. Deliberately not
+ * Today as yyyy-mm-dd in Vancouver. Deliberately not
  * `toISOString().slice(0, 10)`: west of UTC that returns tomorrow's date all
  * evening, which would stamp the wrong day on anything applied to after ~5pm.
+ *
+ * Pinned to a zone rather than reading the machine's, so the same application
+ * gets the same date whether it's recorded from the laptop at home, from a trip,
+ * or by the nightly GitHub Action (which runs in UTC). `en-CA` formats as
+ * yyyy-mm-dd, and Intl handles the PST/PDT switch that a fixed offset wouldn't.
  */
-export function todayYmd(now: Date = new Date()): string {
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function todayYmd(now: Date = new Date(), timeZone: string = TRACKER_TIME_ZONE): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
 }
 
 /**
@@ -95,6 +105,27 @@ export function appliedDateForNewRow(
   const typed = appliedDate.trim();
   if (typed) return typed;
   return status && status !== "SAVED" ? today : null;
+}
+
+/**
+ * Applied date to show after the *dialog's* status dropdown moves, so the field
+ * you can see always matches what will be stored.
+ *
+ * The dialog opens as APPLIED + today. Switching to SAVED means "bookmark, not
+ * applied yet", and carrying that auto-stamp along would quietly add a point to
+ * the dashboard's over-time chart, which counts every dated row regardless of
+ * status. A date equal to today is treated as the auto-stamp and dropped; any
+ * other date was typed deliberately ("applied last month, recording it now") and
+ * is left alone.
+ */
+export function appliedDateForStatusChange(
+  nextStatus: string,
+  currentDate: string,
+  today: string = todayYmd(),
+): string {
+  const date = currentDate.trim();
+  if (nextStatus === "SAVED") return date === today ? "" : date;
+  return date || today;
 }
 
 /**

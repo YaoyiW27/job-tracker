@@ -14,7 +14,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { APP_STATUS } from "@/lib/enums";
-import { appliedDateForNewRow } from "@/lib/application-edit";
+import {
+  appliedDateForNewRow,
+  appliedDateForStatusChange,
+  todayYmd,
+} from "@/lib/application-edit";
 import {
   cleanPrefill,
   interpretCreateResponse,
@@ -25,17 +29,28 @@ import type { DuplicateMatch } from "@/lib/applications";
 
 const STATUSES = Object.values(APP_STATUS);
 
-const emptyDraft = {
-  url: "",
-  company: "",
-  title: "",
-  status: APP_STATUS.SAVED as string,
-  appliedDate: "",
-  location: "",
-  salary: "",
-  resumeVersion: "",
-  notes: "",
-};
+/**
+ * A fresh draft. Defaults to APPLIED with today's date because this dialog is
+ * how a job gets recorded *after* applying to it — saving one to look at later
+ * happens on Discover, which creates the row as SAVED via job-save.ts. Change
+ * the dropdown back to SAVED on the rare occasion this one is a bookmark.
+ *
+ * Built per call rather than held as a module constant: a tab left open
+ * overnight would otherwise still offer yesterday's date.
+ */
+function makeEmptyDraft() {
+  return {
+    url: "",
+    company: "",
+    title: "",
+    status: APP_STATUS.APPLIED as string,
+    appliedDate: todayYmd(),
+    location: "",
+    salary: "",
+    resumeVersion: "",
+    notes: "",
+  };
+}
 
 export function AddRowDialog({
   onCreated,
@@ -45,7 +60,7 @@ export function AddRowDialog({
   resumes: { id: string; label: string }[];
 }) {
   const [open, setOpen] = React.useState(false);
-  const [draft, setDraft] = React.useState({ ...emptyDraft });
+  const [draft, setDraft] = React.useState(makeEmptyDraft);
   const [errors, setErrors] = React.useState<{ company?: string; title?: string }>({});
   const [prefilling, setPrefilling] = React.useState(false);
   const [prefillNote, setPrefillNote] = React.useState<string | null>(null);
@@ -60,7 +75,7 @@ export function AddRowDialog({
   }
 
   function reset() {
-    setDraft({ ...emptyDraft });
+    setDraft(makeEmptyDraft());
     setErrors({});
     setPrefillNote(null);
     setPasted("");
@@ -272,7 +287,14 @@ export function AddRowDialog({
               <select
                 id="status"
                 value={draft.status}
-                onChange={(e) => set("status", e.target.value)}
+                onChange={(e) => {
+                  const status = e.target.value;
+                  setDraft((d) => ({
+                    ...d,
+                    status,
+                    appliedDate: appliedDateForStatusChange(status, d.appliedDate),
+                  }));
+                }}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {STATUSES.map((s) => (

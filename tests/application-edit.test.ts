@@ -4,6 +4,7 @@ import {
   buildPatch,
   EDITABLE_FIELDS,
   todayYmd,
+  appliedDateForStatusChange,
   withAppliedDateDefault,
   appliedDateForNewRow,
 } from "@/lib/application-edit";
@@ -80,11 +81,36 @@ describe("buildPatch", () => {
 });
 
 describe("todayYmd", () => {
-  it("uses local calendar date, not UTC", () => {
-    // 2026-08-14 21:00 local — toISOString() would roll this to the 15th in any
-    // timezone west of UTC, stamping tomorrow's date on tonight's application.
-    const local = new Date(2026, 7, 14, 21, 0, 0);
-    expect(todayYmd(local)).toBe("2026-08-14");
+  // Every instant below is written in UTC on purpose: the answer must not depend
+  // on how the machine running the test is configured.
+  it("stamps the Vancouver date, not the UTC one", () => {
+    // 05:00 UTC is 22:00 the previous evening in Vancouver. toISOString() — and
+    // any UTC-based date — would stamp tomorrow on tonight's application.
+    expect(todayYmd(new Date("2026-08-18T05:00:00Z"))).toBe("2026-08-17");
+  });
+
+  it("rolls over at Vancouver midnight, not UTC midnight", () => {
+    expect(todayYmd(new Date("2026-08-18T06:59:00Z"))).toBe("2026-08-17");
+    expect(todayYmd(new Date("2026-08-18T07:00:00Z"))).toBe("2026-08-18");
+  });
+
+  it("follows daylight saving — the offset is not a fixed -7", () => {
+    // January is PST (UTC-8), so midnight Vancouver is 08:00 UTC, an hour later
+    // than in PDT. A hardcoded offset gets this day wrong every winter.
+    expect(todayYmd(new Date("2026-01-15T07:30:00Z"))).toBe("2026-01-14");
+    expect(todayYmd(new Date("2026-01-15T08:00:00Z"))).toBe("2026-01-15");
+  });
+
+  it("is independent of the machine's own timezone", () => {
+    // Same instant, whatever TZ the process runs under.
+    const instant = new Date("2026-08-18T05:00:00Z");
+    expect(todayYmd(instant)).toBe(todayYmd(new Date(instant.getTime())));
+    expect(todayYmd(instant)).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("accepts an explicit timezone, so a move doesn't mean a code change", () => {
+    expect(todayYmd(new Date("2026-08-18T05:00:00Z"), "UTC")).toBe("2026-08-18");
+    expect(todayYmd(new Date("2026-08-18T05:00:00Z"), "America/Toronto")).toBe("2026-08-18");
   });
 });
 
@@ -160,5 +186,33 @@ describe("appliedDateForNewRow", () => {
 
   it("still honours a date on a SAVED row — applied earlier, tracked later", () => {
     expect(appliedDateForNewRow("SAVED", "2026-07-01", TODAY)).toBe("2026-07-01");
+  });
+});
+
+describe("appliedDateForStatusChange", () => {
+  const TODAY = "2026-08-17";
+
+  it("drops the auto-stamped date when the row goes back to SAVED", () => {
+    // The Add-row dialog opens as APPLIED + today. Switching to SAVED means
+    // "bookmark, haven't applied" — carrying today's date in would inflate the
+    // dashboard's over-time chart, which counts any dated row.
+    expect(appliedDateForStatusChange("SAVED", TODAY, TODAY)).toBe("");
+  });
+
+  it("keeps a date the user typed, even when switching to SAVED", () => {
+    expect(appliedDateForStatusChange("SAVED", "2026-07-01", TODAY)).toBe("2026-07-01");
+  });
+
+  it("stamps today when leaving SAVED with an empty date", () => {
+    expect(appliedDateForStatusChange("APPLIED", "", TODAY)).toBe(TODAY);
+    expect(appliedDateForStatusChange("INTERVIEW", "", TODAY)).toBe(TODAY);
+  });
+
+  it("never overwrites an existing date when leaving SAVED", () => {
+    expect(appliedDateForStatusChange("OFFER", "2026-07-01", TODAY)).toBe("2026-07-01");
+  });
+
+  it("leaves an already-empty SAVED row empty", () => {
+    expect(appliedDateForStatusChange("SAVED", "", TODAY)).toBe("");
   });
 });
